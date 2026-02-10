@@ -23,16 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return true;
     }
     
-    // Viewer access is only for the explicit "Acessar como Visitante" button
-    // which passes an empty string.
-    if (password === '') {
-        const userRole = 'VIEWER';
-        sessionStorage.setItem('userRole', userRole);
-        setRole(userRole);
-        return true;
-    }
-    
-    // Any other non-empty password is an incorrect attempt and fails login.
+    // Qualquer outra senha é uma tentativa incorreta e falha o login.
     return false;
   };
 

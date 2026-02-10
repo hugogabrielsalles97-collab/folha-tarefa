@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { Task } from './types';
+import { useSupabaseTasks } from './hooks/useSupabaseTasks';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import TaskForm from './components/TaskForm';
 import Login from './components/Login';
 import { AddIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
-import { useRealtimeTasks } from './hooks/useRealtimeTasks';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
-  const { tasks, addTask, updateTask, deleteTask, loading, error } = useRealtimeTasks();
+  const { tasks, addTask, updateTask, deleteTask, loading, error } = useSupabaseTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -25,61 +25,67 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveTask = useCallback(async (task: Task) => {
-    const isEditing = !!editingTask;
+    const isNewTask = !editingTask;
 
-    const save = async () => {
-        if (isEditing) {
-            await updateTask(task);
-        } else {
-            await addTask(task);
+    const performSave = async () => {
+        try {
+            if (isNewTask) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { id, created_at, ...newTaskData } = task;
+                await addTask(newTaskData);
+            } else {
+                await updateTask(task);
+            }
+            handleCloseModal();
+        } catch (e) {
+            console.error("Falha ao salvar:", e);
+            alert("Não foi possível salvar a tarefa. Verifique o console para mais detalhes.");
         }
-        handleCloseModal();
     };
 
-    if (!isEditing) {
-        const newStart = new Date(task.plannedStartDate).getTime();
-        const newEnd = new Date(task.plannedEndDate).getTime();
+    if (isNewTask) {
+        // FIX: Ensure dates are parsed as UTC to prevent timezone bugs
+        const newStart = new Date(task.plannedStartDate + 'T00:00:00').getTime();
+        const newEnd = new Date(task.plannedEndDate + 'T00:00:00').getTime();
 
         const overlappingTasks = tasks.filter(existingTask => {
             if (existingTask.name !== task.name) {
                 return false;
             }
-            const existingStart = new Date(existingTask.plannedStartDate).getTime();
-            const existingEnd = new Date(existingTask.plannedEndDate).getTime();
+            const existingStart = new Date(existingTask.plannedStartDate + 'T00:00:00').getTime();
+            const existingEnd = new Date(existingTask.plannedEndDate + 'T00:00:00').getTime();
+            
             return newStart <= existingEnd && newEnd >= existingStart;
         });
 
         if (overlappingTasks.length > 0) {
             const confirmationMessage = `Já existem ${overlappingTasks.length} tarefas com o nome "${task.name}" planejadas para este período. Deseja criar mesmo assim?`;
             if (window.confirm(confirmationMessage)) {
-                await save();
+                await performSave();
             }
         } else {
-            await save();
+            await performSave();
         }
-    } else {
-        await save();
+    } else { // This is an edit
+        await performSave();
     }
   }, [tasks, editingTask, addTask, updateTask, handleCloseModal]);
 
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      await deleteTask(taskId);
+      try {
+        await deleteTask(taskId);
+      } catch (e) {
+        console.error("Falha ao excluir:", e);
+        alert("Não foi possível excluir a tarefa.");
+      }
     }
   }, [deleteTask]);
 
+
   if (!role) {
     return <Login />;
-  }
-  
-  if (loading) {
-    return (
-        <div className="min-h-screen bg-dark-bg flex flex-col justify-center items-center text-neon-cyan text-xl space-y-4">
-            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-neon-magenta"></div>
-            <p>Carregando dados...</p>
-        </div>
-    );
   }
 
   return (
@@ -112,8 +118,10 @@ const App: React.FC = () => {
         </div>
       </header>
       
+      {loading && <p className="text-center text-neon-cyan my-4">Carregando dados em tempo real...</p>}
+      {error && <p className="text-center text-red-500 bg-red-500/10 p-3 rounded-md my-4">{error}</p>}
+
       <main>
-        {error && <div className="bg-red-500/20 text-red-400 p-4 rounded-md mb-4 text-center">{error}</div>}
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
       </main>
 

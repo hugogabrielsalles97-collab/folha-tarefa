@@ -15,16 +15,16 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
             return { ganttData: [], domain: [0, 0] };
         }
         
-        const sortedTasks = [...tasks].sort((a, b) => new Date(a.plannedStartDate).getTime() - new Date(b.plannedStartDate).getTime());
+        const sortedTasks = [...tasks].sort((a, b) => new Date(a.plannedStartDate + 'T00:00:00').getTime() - new Date(b.plannedStartDate + 'T00:00:00').getTime());
 
-        const allDates = sortedTasks.flatMap(t => [new Date(t.plannedStartDate).getTime(), new Date(t.plannedEndDate).getTime()]);
+        const allDates = sortedTasks.flatMap(t => [new Date(t.plannedStartDate + 'T00:00:00').getTime(), new Date(t.plannedEndDate + 'T00:00:00').getTime()]);
         const minDate = Math.min(...allDates);
         const maxDate = Math.max(...allDates);
         
         const ganttData = sortedTasks.map(task => {
-            const plannedStart = new Date(task.plannedStartDate).getTime();
-            const plannedEnd = new Date(task.plannedEndDate).getTime();
-            const actualStart = task.actualStartDate ? new Date(task.actualStartDate).getTime() : null;
+            const plannedStart = new Date(task.plannedStartDate + 'T00:00:00').getTime();
+            const plannedEnd = new Date(task.plannedEndDate + 'T00:00:00').getTime();
+            const actualStart = task.actualStartDate ? new Date(task.actualStartDate + 'T00:00:00').getTime() : null;
             
             const plannedDuration = plannedEnd - plannedStart;
             const progressWidth = (plannedDuration * task.progress) / 100;
@@ -70,7 +70,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                         domain={domain} 
                         scale="time" 
                         stroke="#888"
-                        tickFormatter={(time) => new Date(time).toLocaleDateString('pt-BR')} 
+                        tickFormatter={(time) => new Date(time).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} 
                         tick={{ fill: '#888' }}
                     />
                     <YAxis 

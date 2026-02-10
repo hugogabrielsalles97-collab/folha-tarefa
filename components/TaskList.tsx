@@ -13,8 +13,8 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   const { role } = useAuth();
   const getStatusColor = (progress: number, plannedEndDate: string) => {
     const today = new Date();
-    today.setHours(0,0,0,0);
-    const endDate = new Date(plannedEndDate);
+    today.setUTCHours(0,0,0,0);
+    const endDate = new Date(plannedEndDate + 'T00:00:00');
     if (progress === 100) return 'bg-neon-green/20 text-neon-green';
     if (today > endDate) return 'bg-red-500/20 text-red-400';
     return 'bg-neon-orange/20 text-neon-orange';
@@ -22,8 +22,8 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   
   const statusText = (progress: number, plannedEndDate: string) => {
     const today = new Date();
-     today.setHours(0,0,0,0);
-    const endDate = new Date(plannedEndDate);
+    today.setUTCHours(0,0,0,0);
+    const endDate = new Date(plannedEndDate + 'T00:00:00');
     if (progress === 100) return 'Concluída';
     if (today > endDate) return 'Atrasada';
     return 'Em Andamento';
@@ -42,8 +42,8 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         <p>{task.apoio || task.vao || 'N/A'}</p>
       </div>
       <div className="col-span-6 md:col-span-2 text-sm text-gray-300">
-        <p>Início: {new Date(task.plannedStartDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-        <p>Fim: {new Date(task.plannedEndDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+        <p>Início: {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+        <p>Fim: {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
       </div>
       <div className="col-span-6 md:col-span-1">
         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(task.progress, task.plannedEndDate)}`}>
@@ -74,10 +74,10 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
 const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
   const { role } = useAuth();
   if (tasks.length === 0) {
-    return <p className="text-center text-gray-500 py-8">Nenhuma tarefa cadastrada ainda.</p>;
+    return <p className="text-center text-gray-500 py-8">Nenhuma tarefa encontrada com os filtros atuais.</p>;
   }
 
-  const sortedTasks = [...tasks].sort((a,b) => new Date(a.plannedStartDate).getTime() - new Date(b.plannedStartDate).getTime());
+  const sortedTasks = [...tasks].sort((a,b) => new Date(a.plannedStartDate + 'T00:00:00').getTime() - new Date(b.plannedStartDate + 'T00:00:00').getTime());
 
   return (
     <div className="overflow-x-auto">

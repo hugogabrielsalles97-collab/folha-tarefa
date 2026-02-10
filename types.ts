@@ -27,6 +27,7 @@ export type TaskLevel = OAELevel | TerraplanagemLevel | ContencoesLevel | '';
 
 export interface Task {
   id: string;
+  created_at?: string;
   name: string;
   discipline: Discipline;
   level: TaskLevel;
