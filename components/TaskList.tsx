@@ -7,6 +7,8 @@ interface TaskListProps {
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onSort: (key: keyof Task | 'status') => void;
+  sortConfig: { key: keyof Task | 'status' | null; direction: 'asc' | 'desc' };
 }
 
 const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; }> = ({ task, onEdit, onDelete }) => {
@@ -74,8 +76,27 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   );
 };
 
+const SortableHeader: React.FC<{
+    title: string;
+    sortKey: keyof Task | 'status';
+    onSort: (key: keyof Task | 'status') => void;
+    sortConfig: { key: keyof Task | 'status' | null; direction: 'asc' | 'desc' };
+    className?: string;
+}> = ({ title, sortKey, onSort, sortConfig, className }) => {
+    const isSorted = sortConfig.key === sortKey;
+    const direction = isSorted ? sortConfig.direction : null;
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
+    return (
+        <div className={className}>
+            <button onClick={() => onSort(sortKey)} className="flex items-center hover:text-white transition-colors duration-200">
+                {title}
+                {isSorted && <span className="ml-2 text-xs">{direction === 'asc' ? '▲' : '▼'}</span>}
+            </button>
+        </div>
+    );
+};
+
+const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, sortConfig }) => {
   const { role } = useAuth();
   const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
 
@@ -83,24 +104,23 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
     return <p className="text-center text-gray-500 py-8">Nenhuma tarefa encontrada com os filtros atuais.</p>;
   }
 
-  const sortedTasks = [...tasks].sort((a,b) => new Date(a.plannedStartDate + 'T00:00:00').getTime() - new Date(b.plannedStartDate + 'T00:00:00').getTime());
-
   return (
     <div className="overflow-x-auto">
         <div className="min-w-full">
             <div className="grid grid-cols-12 gap-4 p-4 font-bold text-sm text-gray-400 border-b-2 border-neon-magenta/50">
-                <div className="col-span-12 md:col-span-3">Tarefa</div>
-                <div className="col-span-6 md:col-span-1">Obra de Arte</div>
-                <div className="col-span-6 md:col-span-1">Apoio / Vão</div>
-                <div className="col-span-6 md:col-span-2">Datas Previstas</div>
-                <div className="col-span-6 md:col-span-2">Status</div>
-                <div className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-9 md:col-span-3"}>Progresso</div>
+                <SortableHeader title="Tarefa" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
+                <SortableHeader title="Obra de Arte" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" />
+                <SortableHeader title="Apoio / Vão" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" />
+                <SortableHeader title="Datas Previstas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" />
+                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" />
+                <SortableHeader title="Progresso" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-9 md:col-span-3"} />
+
                 {showActions && (
                   <div className="col-span-3 md:col-span-1 text-right print:hidden">Ações</div>
                 )}
             </div>
             <div>
-                {sortedTasks.map(task => (
+                {tasks.map(task => (
                     <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
                 ))}
             </div>

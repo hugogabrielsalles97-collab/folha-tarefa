@@ -20,6 +20,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
   const [endDate, setEndDate] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [ganttOAEFilter, setGanttOAEFilter] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Task | 'status'; direction: 'asc' | 'desc' }>({ key: 'plannedStartDate', direction: 'asc' });
 
   const allLevels = useMemo(() => {
     const levels = Object.values(DISCIPLINE_LEVELS).flat();
@@ -63,6 +64,53 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
       },
     };
   }, [tasks, filter, startDate, endDate, levelFilter]);
+  
+  const handleSort = (key: keyof Task | 'status') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedTasks = useMemo(() => {
+    const getStatusValue = (task: Task) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const endDate = new Date(task.plannedEndDate + 'T00:00:00');
+        if (task.progress === 100) return 2; // Concluída
+        if (today > endDate) return 0; // Atrasada
+        return 1; // Em Andamento
+    };
+    
+    return [...filteredTasks].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+
+        if (sortConfig.key === 'status') {
+            const statusA = getStatusValue(a);
+            const statusB = getStatusValue(b);
+            const comparison = statusA - statusB;
+            return sortConfig.direction === 'desc' ? comparison * -1 : comparison;
+        }
+
+        const aVal = a[sortConfig.key as keyof Task];
+        const bVal = b[sortConfig.key as keyof Task];
+
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+
+        let comparison = 0;
+        if (sortConfig.key === 'progress') {
+            comparison = (aVal as number) - (bVal as number);
+        } else if (['plannedStartDate', 'plannedEndDate', 'actualStartDate', 'actualEndDate'].includes(sortConfig.key)) {
+            comparison = new Date(aVal.toString()).getTime() - new Date(bVal.toString()).getTime();
+        } else {
+            comparison = aVal.toString().localeCompare(bVal.toString());
+        }
+
+        return sortConfig.direction === 'desc' ? comparison * -1 : comparison;
+    });
+  }, [filteredTasks, sortConfig]);
 
   const ganttTasks = useMemo(() => {
     if (!ganttOAEFilter) {
@@ -172,7 +220,13 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
               </button>
             </div>
         </div>
-        <TaskList tasks={filteredTasks} onEdit={onEditTask} onDelete={onDeleteTask} />
+        <TaskList 
+            tasks={sortedTasks} 
+            onEdit={onEditTask} 
+            onDelete={onDeleteTask}
+            onSort={handleSort}
+            sortConfig={sortConfig}
+        />
       </div>
     </div>
   );
