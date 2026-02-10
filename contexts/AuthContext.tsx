@@ -4,7 +4,7 @@ type Role = 'VIEWER' | 'EDITOR';
 
 interface AuthContextType {
   role: Role | null;
-  login: (password: string) => void;
+  login: (password: string) => boolean;
   logout: () => void;
 }
 
@@ -15,10 +15,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return sessionStorage.getItem('userRole') as Role | null;
   });
 
-  const login = (password: string) => {
-    const userRole = password === 'EGTC@2026' ? 'EDITOR' : 'VIEWER';
-    sessionStorage.setItem('userRole', userRole);
-    setRole(userRole);
+  const login = (password: string): boolean => {
+    if (password === 'EGTC@2026') {
+      const userRole = 'EDITOR';
+      sessionStorage.setItem('userRole', userRole);
+      setRole(userRole);
+      return true;
+    }
+    
+    // Viewer access is only for the explicit "Acessar como Visitante" button
+    // which passes an empty string.
+    if (password === '') {
+        const userRole = 'VIEWER';
+        sessionStorage.setItem('userRole', userRole);
+        setRole(userRole);
+        return true;
+    }
+    
+    // Any other non-empty password is an incorrect attempt and fails login.
+    return false;
   };
 
   const logout = () => {
