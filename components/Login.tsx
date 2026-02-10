@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, loginAsViewer } = useAuth();
 
   const handleEditorLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +18,10 @@ const Login: React.FC = () => {
     } else {
       setError('');
     }
+  };
+
+  const handleViewerLogin = () => {
+    loginAsViewer();
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +45,7 @@ const Login: React.FC = () => {
               type="password"
               value={password}
               onChange={handlePasswordChange}
-              placeholder="Digite a senha"
+              placeholder="Digite a senha de editor"
               className="w-full bg-dark-bg border border-dark-border rounded-md shadow-sm p-3 text-white focus:ring-neon-magenta focus:border-neon-magenta placeholder-gray-500"
             />
           </div>
@@ -52,9 +56,28 @@ const Login: React.FC = () => {
             type="submit"
             className="w-full bg-neon-magenta text-black font-bold py-3 px-4 rounded-lg shadow-neon-magenta hover:bg-neon-magenta/90 transition-all duration-300 transform hover:scale-105"
           >
-            Entrar
+            Entrar como Editor
           </button>
         </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-dark-border" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-dark-surface px-2 text-gray-500">OU</span>
+          </div>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            onClick={handleViewerLogin}
+            className="w-full bg-dark-border text-neon-cyan font-bold py-3 px-4 rounded-lg hover:bg-dark-border/80 transition-all duration-300"
+          >
+            Acessar como Visitante
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ type Role = 'VIEWER' | 'EDITOR';
 interface AuthContextType {
   role: Role | null;
   login: (password: string) => boolean;
+  loginAsViewer: () => void;
   logout: () => void;
 }
 
@@ -26,6 +27,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Qualquer outra senha é uma tentativa incorreta e falha o login.
     return false;
   };
+  
+  const loginAsViewer = () => {
+    const userRole = 'VIEWER';
+    sessionStorage.setItem('userRole', userRole);
+    setRole(userRole);
+  };
 
   const logout = () => {
     sessionStorage.removeItem('userRole');
@@ -33,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ role, login, logout }}>
+    <AuthContext.Provider value={{ role, login, loginAsViewer, logout }}>
       {children}
     </AuthContext.Provider>
   );
