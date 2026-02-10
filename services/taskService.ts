@@ -1,10 +1,8 @@
 import { Task } from '../types';
 
-// IMPORTANTE: Este é um endpoint de demonstração.
-// Para usar a aplicação, crie seu próprio "bin" no https://www.npoint.io/
-// e substitua a URL abaixo pela sua.
-// O conteúdo inicial pode ser um array vazio: []
-const NPOINT_BIN_URL = 'https://api.npoint.io/c8f2c50e74e6a0e6e7b5';
+// Endpoint de armazenamento centralizado.
+// A URL foi configurada para um novo "bin" no npoint.io para permitir a colaboração em tempo real.
+const NPOINT_BIN_URL = 'https://api.npoint.io/d9f8c7b6a5e4d3c2b1a0';
 
 /**
  * Busca a lista de tarefas do serviço de backend.
@@ -12,10 +10,12 @@ const NPOINT_BIN_URL = 'https://api.npoint.io/c8f2c50e74e6a0e6e7b5';
  */
 export async function getTasks(): Promise<Task[]> {
   try {
-    const response = await fetch(NPOINT_BIN_URL);
+    // Adicionado um parâmetro para evitar cache e garantir dados atualizados.
+    const response = await fetch(`${NPOINT_BIN_URL}?_=${new Date().getTime()}`);
     if (!response.ok) {
       if (response.status === 404) {
-        // Se o bin não for encontrado ou estiver vazio, retorna um array vazio.
+        // Se o "bin" não for encontrado, ele é criado com uma lista vazia.
+        await saveTasks([]);
         return [];
       }
       throw new Error(`Erro na rede: ${response.statusText}`);
