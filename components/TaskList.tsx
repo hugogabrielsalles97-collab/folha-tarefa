@@ -33,14 +33,14 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
 
   return (
     <div className="grid grid-cols-12 gap-4 items-center p-4 border-b border-dark-border hover:bg-dark-bg transition-colors duration-200">
-      <div className="col-span-12 md:col-span-2">
+      <div className="col-span-12 md:col-span-3">
         <p className="font-bold text-white">{task.name}</p>
         <p className="text-xs text-gray-400">{task.discipline} / {task.level}</p>
       </div>
       <div className="col-span-6 md:col-span-2 text-sm text-gray-300">
         <p>{task.obraDeArte || 'N/A'}</p>
       </div>
-      <div className="col-span-6 md:col-span-2 text-sm text-gray-300">
+      <div className="col-span-6 md:col-span-1 text-sm text-gray-300">
         <p>{task.apoio || task.vao || 'N/A'}</p>
       </div>
       <div className="col-span-6 md:col-span-2 text-sm text-gray-300">
@@ -89,9 +89,9 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
     <div className="overflow-x-auto">
         <div className="min-w-full">
             <div className="grid grid-cols-12 gap-4 p-4 font-bold text-sm text-gray-400 border-b-2 border-neon-magenta/50">
-                <div className="col-span-12 md:col-span-2">Tarefa</div>
+                <div className="col-span-12 md:col-span-3">Tarefa</div>
                 <div className="col-span-6 md:col-span-2">Obra de Arte</div>
-                <div className="col-span-6 md:col-span-2">Apoio / Vão</div>
+                <div className="col-span-6 md:col-span-1">Apoio / Vão</div>
                 <div className="col-span-6 md:col-span-2">Datas Previstas</div>
                 <div className="col-span-6 md:col-span-1">Status</div>
                 <div className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-9 md:col-span-3"}>Progresso</div>
