@@ -90,7 +90,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-dark-bg p-4 sm:p-6 lg:p-8 font-sans">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-center mb-8 print:hidden">
         <div>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-neon-cyan tracking-wider" style={{textShadow: '0 0 5px #00ffff'}}>
@@ -118,8 +118,8 @@ const App: React.FC = () => {
         </div>
       </header>
       
-      {loading && <p className="text-center text-neon-cyan my-4">Carregando dados em tempo real...</p>}
-      {error && <p className="text-center text-red-500 bg-red-500/10 p-3 rounded-md my-4">{error}</p>}
+      {loading && <p className="text-center text-neon-cyan my-4 print:hidden">Carregando dados em tempo real...</p>}
+      {error && <p className="text-center text-red-500 bg-red-500/10 p-3 rounded-md my-4 print:hidden">{error}</p>}
 
       <main>
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />

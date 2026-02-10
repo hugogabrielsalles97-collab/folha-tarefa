@@ -52,14 +52,14 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
           {statusText(task.progress, task.plannedEndDate)}
         </span>
       </div>
-      <div className={showActions ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
+      <div className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-12 md:col-span-3"}>
         <div className="w-full bg-dark-border rounded-full h-2.5">
           <div className="bg-neon-green h-2.5 rounded-full" style={{ width: `${task.progress}%` }}></div>
         </div>
         <p className="text-xs text-right text-gray-400 mt-1">{task.progress}%</p>
       </div>
       {showActions && (
-        <div className="col-span-3 md:col-span-1 flex justify-end items-center gap-2">
+        <div className="col-span-3 md:col-span-1 flex justify-end items-center gap-2 print:hidden">
           <button onClick={() => onEdit(task)} className="p-2 text-gray-400 hover:text-neon-cyan transition-colors">
             <EditIcon />
           </button>
@@ -94,9 +94,9 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
                 <div className="col-span-6 md:col-span-2">Apoio / Vão</div>
                 <div className="col-span-6 md:col-span-2">Datas Previstas</div>
                 <div className="col-span-6 md:col-span-1">Status</div>
-                <div className={showActions ? "col-span-9 md:col-span-2" : "col-span-9 md:col-span-3"}>Progresso</div>
+                <div className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-9 md:col-span-3"}>Progresso</div>
                 {showActions && (
-                  <div className="col-span-3 md:col-span-1 text-right">Ações</div>
+                  <div className="col-span-3 md:col-span-1 text-right print:hidden">Ações</div>
                 )}
             </div>
             <div>

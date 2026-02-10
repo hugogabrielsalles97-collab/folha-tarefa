@@ -28,6 +28,37 @@
         }
       }
     </script>
+    <style>
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        /* Override dark theme for printing */
+        .bg-dark-surface, .bg-dark-bg, .hover\:bg-dark-bg:hover {
+          background-color: #ffffff !important;
+        }
+        .text-white, .text-gray-200, .text-gray-300, .text-gray-400, .text-neon-cyan, .text-neon-magenta, .text-neon-green, .text-neon-orange, .text-red-400 {
+          color: #000000 !important;
+        }
+        .border-dark-border, .border-b, .border-neon-magenta\/50, .border-b-2 {
+          border-color: #cccccc !important;
+        }
+        /* Hide progress bar background and make progress visible */
+        .w-full.bg-dark-border.rounded-full {
+            background-color: #e5e5e5 !important;
+            border: 1px solid #ccc;
+        }
+        .bg-neon-green {
+            background-color: #bbbbbb !important;
+        }
+        /* Make status tags readable */
+        .bg-neon-green\/20, .bg-red-500\/20, .bg-neon-orange\/20 {
+          background-color: transparent !important;
+          border: 1px solid #000;
+        }
+      }
+    </style>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/recharts@2/umd/Recharts.min.js"></script>
