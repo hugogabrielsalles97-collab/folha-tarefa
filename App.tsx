@@ -1,12 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { Task, Discipline } from './types';
+import { Task } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import TaskForm from './components/TaskForm';
+import Login from './components/Login';
 import { AddIcon } from './components/icons';
+import { useAuth } from './contexts/AuthContext';
 
 const App: React.FC = () => {
+  const { role, logout } = useAuth();
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -67,35 +70,53 @@ const App: React.FC = () => {
     }
   }, [setTasks]);
 
+  if (!role) {
+    return <Login />;
+  }
+
   return (
     <div className="min-h-screen bg-dark-bg p-4 sm:p-6 lg:p-8 font-sans">
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-neon-cyan tracking-wider" style={{textShadow: '0 0 5px #00ffff'}}>
-            NSA - SERRA DAS ARARAS
-          </h1>
-          <p className="text-gray-400 mt-1">Dashboard de Acompanhamento de Atividades</p>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-neon-cyan tracking-wider" style={{textShadow: '0 0 5px #00ffff'}}>
+              NSA - SERRA DAS ARARAS
+            </h1>
+            <p className="text-gray-400 mt-1">Dashboard de Acompanhamento de Atividades</p>
+          </div>
         </div>
-        <button
-          onClick={() => handleOpenModal(null)}
-          className="flex items-center gap-2 bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg shadow-neon-cyan hover:bg-neon-cyan transition-all duration-300 transform hover:scale-105"
-        >
-          <AddIcon />
-          Nova Tarefa
-        </button>
+        <div className="flex items-center gap-4">
+          {role === 'EDITOR' && (
+            <button
+              onClick={() => handleOpenModal(null)}
+              className="flex items-center gap-2 bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg shadow-neon-cyan hover:bg-neon-cyan transition-all duration-300 transform hover:scale-105"
+            >
+              <AddIcon />
+              <span className="hidden sm:inline">Nova Tarefa</span>
+            </button>
+          )}
+          <button
+            onClick={logout}
+            className="bg-dark-surface text-gray-300 font-bold py-2 px-4 rounded-lg hover:bg-dark-border hover:text-white transition-colors"
+          >
+            Sair
+          </button>
+        </div>
       </header>
       
       <main>
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
       </main>
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-        <TaskForm 
-          onSave={handleSaveTask} 
-          onCancel={handleCloseModal} 
-          existingTask={editingTask}
-        />
-      </Modal>
+      {role === 'EDITOR' && (
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+          <TaskForm 
+            onSave={handleSaveTask} 
+            onCancel={handleCloseModal} 
+            existingTask={editingTask}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

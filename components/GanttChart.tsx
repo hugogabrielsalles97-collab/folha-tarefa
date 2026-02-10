@@ -82,33 +82,44 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     
-                    <Bar dataKey="plannedRange" stackId="a" fill="#ff00ff" fillOpacity="0.3" shape={<div />} />
-                    <Bar dataKey="actualProgressRange" stackId="a" fill="#39ff14" shape={<div />} />
+                    {/* FIX: Use <g />, a valid SVG element, for the shape prop instead of <div />. */}
+                    <Bar dataKey="plannedRange" stackId="a" fill="#ff00ff" fillOpacity="0.3" shape={<g />} />
+                    <Bar dataKey="actualProgressRange" stackId="a" fill="#39ff14" shape={<g />} />
                     
                      {/* Custom rendering using ReferenceArea to simulate Gantt bars */}
                     {/* FIX: Combine maps and use React.Fragment with a key to resolve TypeScript error on ReferenceArea. */}
-                    {ganttData.map((entry, index) => (
-                        <React.Fragment key={`gantt-entry-${index}`}>
-                            <ReferenceArea
-                                y1={entry.name} y2={entry.name}
-                                x1={entry.plannedRange[0]} x2={entry.plannedRange[1]}
-                                ifOverflow="visible"
-                                fill="#ff00ff"
-                                fillOpacity={0.3}
-                                stroke="#ff00ff"
-                                strokeOpacity={0.6}
-                            />
-                            {entry.task.progress > 0 &&
+                    {ganttData.map((entry, index) => {
+                        // FIX: Define presentation attributes in an 'any' typed object to bypass incorrect recharts typings
+                        // for props like 'fill', which are valid according to documentation but cause TS errors.
+                        const plannedAreaProps: any = {
+                          fill: '#ff00ff',
+                          fillOpacity: 0.3,
+                          stroke: '#ff00ff',
+                          strokeOpacity: 0.6,
+                        };
+                        const actualAreaProps: any = {
+                          fill: '#39ff14',
+                          fillOpacity: 0.8,
+                        };
+                        return (
+                            <React.Fragment key={`gantt-entry-${index}`}>
                                 <ReferenceArea
                                     y1={entry.name} y2={entry.name}
-                                    x1={entry.actualProgressRange[0]} x2={entry.actualProgressRange[1]}
+                                    x1={entry.plannedRange[0]} x2={entry.plannedRange[1]}
                                     ifOverflow="visible"
-                                    fill="#39ff14"
-                                    fillOpacity={0.8}
+                                    {...plannedAreaProps}
                                 />
-                            }
-                        </React.Fragment>
-                    ))}
+                                {entry.task.progress > 0 &&
+                                    <ReferenceArea
+                                        y1={entry.name} y2={entry.name}
+                                        x1={entry.actualProgressRange[0]} x2={entry.actualProgressRange[1]}
+                                        ifOverflow="visible"
+                                        {...actualAreaProps}
+                                    />
+                                }
+                            </React.Fragment>
+                        );
+                    })}
 
                 </BarChart>
             </ResponsiveContainer>
