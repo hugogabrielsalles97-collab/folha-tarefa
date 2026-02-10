@@ -130,103 +130,111 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:hidden">
-        <div className="lg:col-span-1 bg-dark-surface p-6 rounded-lg border border-dark-border">
-          <h3 className="text-xl font-semibold text-neon-cyan mb-4">Progresso por Disciplina</h3>
-          <ProgressChart tasks={filteredTasks} />
-        </div>
-        <div className="lg:col-span-2 bg-dark-surface p-6 rounded-lg border border-dark-border">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-            <h3 className="text-xl font-semibold text-neon-cyan">Linha do Tempo (Gantt)</h3>
-            <div>
-              <label htmlFor="ganttOAEFilter" className="sr-only">Filtrar por Obra de Arte</label>
-              <select
-                id="ganttOAEFilter"
-                value={ganttOAEFilter}
-                onChange={e => setGanttOAEFilter(e.target.value)}
-                className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan text-sm"
-              >
-                <option value="">Todas as Obras de Arte</option>
-                {OBRAS_DE_ARTE_OPTIONS.map(oae => (
-                  <option key={oae} value={oae}>{oae}</option>
-                ))}
-              </select>
-            </div>
+        <div className="lg:col-span-1 bg-dark-border p-1 rounded-lg">
+          <div className="bg-dark-surface p-6 rounded-lg h-full">
+            <h3 className="text-xl font-semibold text-neon-cyan mb-4">Progresso por Disciplina</h3>
+            <ProgressChart tasks={filteredTasks} />
           </div>
-          <GanttChart tasks={ganttTasks} />
+        </div>
+        <div className="lg:col-span-2 bg-dark-border p-1 rounded-lg">
+          <div className="bg-dark-surface p-6 rounded-lg h-full">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+              <h3 className="text-xl font-semibold text-neon-cyan">Linha do Tempo (Gantt)</h3>
+              <div>
+                <label htmlFor="ganttOAEFilter" className="sr-only">Filtrar por Obra de Arte</label>
+                <select
+                  id="ganttOAEFilter"
+                  value={ganttOAEFilter}
+                  onChange={e => setGanttOAEFilter(e.target.value)}
+                  className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan text-sm"
+                >
+                  <option value="">Todas as Obras de Arte</option>
+                  {OBRAS_DE_ARTE_OPTIONS.map(oae => (
+                    <option key={oae} value={oae}>{oae}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <GanttChart tasks={ganttTasks} />
+          </div>
         </div>
       </div>
 
-      <div className="bg-dark-surface p-6 rounded-lg border border-dark-border print:hidden">
+      <div className="bg-dark-border p-1 rounded-lg print:hidden">
+        <div className="bg-dark-surface p-6 rounded-lg">
           <h3 className="text-xl font-semibold text-neon-cyan mb-4">Previsto vs. Realizado</h3>
           <CompletionChart tasks={filteredTasks} />
+        </div>
       </div>
 
-      <div className="bg-dark-surface p-6 rounded-lg border border-dark-border">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-            <h3 className="text-xl font-semibold text-neon-cyan">Lista de Tarefas</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-wrap items-end gap-4 print:hidden">
-                <div>
-                  <label htmlFor="startDate" className="block text-xs font-medium text-gray-400 mb-1">Data Início (Prev.)</label>
-                  <input
-                      id="startDate"
-                      type="date"
-                      value={startDate}
-                      onChange={e => setStartDate(e.target.value)}
-                      className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                  />
+      <div className="bg-dark-border p-1 rounded-lg">
+        <div className="bg-dark-surface p-6 rounded-lg">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+              <h3 className="text-xl font-semibold text-neon-cyan">Lista de Tarefas</h3>
+              <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-end gap-4 print:hidden">
+                  <div>
+                    <label htmlFor="startDate" className="block text-xs font-medium text-gray-400 mb-1">Data Início (Prev.)</label>
+                    <input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="endDate" className="block text-xs font-medium text-gray-400 mb-1">Data Fim (Prev.)</label>
+                    <input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="levelFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por Nível</label>
+                    <select
+                        id="levelFilter"
+                        value={levelFilter}
+                        onChange={e => setLevelFilter(e.target.value)}
+                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan w-full min-w-[180px]"
+                    >
+                        <option value="">Todos os Níveis</option>
+                        {allLevels.map(level => (
+                            <option key={level} value={level}>{level}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="textFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por nome</label>
+                    <input
+                        id="textFilter"
+                        type="text"
+                        placeholder="Nome da tarefa..."
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="endDate" className="block text-xs font-medium text-gray-400 mb-1">Data Fim (Prev.)</label>
-                  <input
-                      id="endDate"
-                      type="date"
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                      className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="levelFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por Nível</label>
-                  <select
-                      id="levelFilter"
-                      value={levelFilter}
-                      onChange={e => setLevelFilter(e.target.value)}
-                      className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan w-full min-w-[180px]"
-                  >
-                      <option value="">Todos os Níveis</option>
-                      {allLevels.map(level => (
-                          <option key={level} value={level}>{level}</option>
-                      ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="textFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por nome</label>
-                  <input
-                      id="textFilter"
-                      type="text"
-                      placeholder="Nome da tarefa..."
-                      value={filter}
-                      onChange={e => setFilter(e.target.value)}
-                      className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                  />
-                </div>
+                <button
+                  onClick={() => window.print()}
+                  className="print:hidden self-end bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg hover:bg-neon-cyan transition-all duration-300 h-10"
+                >
+                  Imprimir
+                </button>
               </div>
-              <button
-                onClick={() => window.print()}
-                className="print:hidden self-end bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg hover:bg-neon-cyan transition-all duration-300 h-10"
-              >
-                Imprimir
-              </button>
-            </div>
+          </div>
+          <TaskList 
+              tasks={sortedTasks} 
+              onEdit={onEditTask} 
+              onDelete={onDeleteTask}
+              onSort={handleSort}
+              sortConfig={sortConfig}
+          />
         </div>
-        <TaskList 
-            tasks={sortedTasks} 
-            onEdit={onEditTask} 
-            onDelete={onDeleteTask}
-            onSort={handleSort}
-            sortConfig={sortConfig}
-        />
       </div>
     </div>
   );
