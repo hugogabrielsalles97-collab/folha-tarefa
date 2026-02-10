@@ -86,28 +86,28 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                     <Bar dataKey="actualProgressRange" stackId="a" fill="#39ff14" shape={<div />} />
                     
                      {/* Custom rendering using ReferenceArea to simulate Gantt bars */}
+                    {/* FIX: Combine maps and use React.Fragment with a key to resolve TypeScript error on ReferenceArea. */}
                     {ganttData.map((entry, index) => (
-                        <ReferenceArea 
-                            key={`planned-${index}`}
-                            y1={entry.name} y2={entry.name}
-                            x1={entry.plannedRange[0]} x2={entry.plannedRange[1]}
-                            ifOverflow="visible"
-                            fill="#ff00ff"
-                            fillOpacity={0.3}
-                            stroke="#ff00ff"
-                            strokeOpacity={0.6}
-                        />
-                    ))}
-                    {ganttData.map((entry, index) => (
-                         entry.task.progress > 0 &&
-                        <ReferenceArea 
-                            key={`actual-${index}`}
-                            y1={entry.name} y2={entry.name}
-                            x1={entry.actualProgressRange[0]} x2={entry.actualProgressRange[1]}
-                            ifOverflow="visible"
-                            fill="#39ff14"
-                            fillOpacity={0.8}
-                        />
+                        <React.Fragment key={`gantt-entry-${index}`}>
+                            <ReferenceArea
+                                y1={entry.name} y2={entry.name}
+                                x1={entry.plannedRange[0]} x2={entry.plannedRange[1]}
+                                ifOverflow="visible"
+                                fill="#ff00ff"
+                                fillOpacity={0.3}
+                                stroke="#ff00ff"
+                                strokeOpacity={0.6}
+                            />
+                            {entry.task.progress > 0 &&
+                                <ReferenceArea
+                                    y1={entry.name} y2={entry.name}
+                                    x1={entry.actualProgressRange[0]} x2={entry.actualProgressRange[1]}
+                                    ifOverflow="visible"
+                                    fill="#39ff14"
+                                    fillOpacity={0.8}
+                                />
+                            }
+                        </React.Fragment>
                     ))}
 
                 </BarChart>

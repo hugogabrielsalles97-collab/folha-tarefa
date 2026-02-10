@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { parseISO, min, max, eachDayOfInterval, format } from 'date-fns';
+// FIX: Import date-fns functions from their specific subpaths to resolve module resolution errors.
+import { eachDayOfInterval, format } from 'date-fns';
+import parseISO from 'date-fns/parseISO';
+import min from 'date-fns/min';
+import max from 'date-fns/max';
 import { Task } from '../types';
 
 interface CompletionChartProps {
@@ -27,7 +31,7 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
         if (validTasks.length === 0) return [];
 
         const allDates = validTasks.flatMap(t => {
-            const dates = [parseISO(t.plannedEndDate)];
+            const dates: Date[] = [parseISO(t.plannedEndDate)];
             if (t.actualEndDate) {
                 dates.push(parseISO(t.actualEndDate));
             }

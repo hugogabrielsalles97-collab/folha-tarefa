@@ -109,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
       </div>
 
       <div className="bg-dark-surface p-6 rounded-lg border border-dark-border">
-          <h3 className="text-xl font-semibold text-neon-cyan mb-4">Curva S - Previsto vs. Realizado</h3>
+          <h3 className="text-xl font-semibold text-neon-cyan mb-4">Previsto vs. Realizado</h3>
           <CompletionChart tasks={filteredTasks} />
       </div>
 
