@@ -6,7 +6,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const { login, loginAsViewer } = useAuth();
 
-  const handleEditorLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
         setError('Por favor, insira a senha.');
@@ -37,7 +37,7 @@ const Login: React.FC = () => {
         <h1 className="text-2xl font-bold text-center text-white mb-2">NSA - Serra das Araras</h1>
         <p className="text-center text-gray-400 mb-8">Controle de Atividades</p>
 
-        <form onSubmit={handleEditorLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label htmlFor="password" className="sr-only">Senha</label>
             <input
@@ -45,7 +45,7 @@ const Login: React.FC = () => {
               type="password"
               value={password}
               onChange={handlePasswordChange}
-              placeholder="Digite a senha de editor"
+              placeholder="Digite a senha de acesso"
               className="w-full bg-dark-bg border border-dark-border rounded-md shadow-sm p-3 text-white focus:ring-neon-magenta focus:border-neon-magenta placeholder-gray-500"
             />
           </div>
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
             type="submit"
             className="w-full bg-neon-magenta text-black font-bold py-3 px-4 rounded-lg shadow-neon-magenta hover:bg-neon-magenta/90 transition-all duration-300 transform hover:scale-105"
           >
-            Entrar como Editor
+            Acesso Restrito
           </button>
         </form>
 

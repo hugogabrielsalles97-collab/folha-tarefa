@@ -11,6 +11,8 @@ interface TaskListProps {
 
 const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; }> = ({ task, onEdit, onDelete }) => {
   const { role } = useAuth();
+  const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
+
   const getStatusColor = (progress: number, plannedEndDate: string) => {
     const today = new Date();
     today.setUTCHours(0,0,0,0);
@@ -50,20 +52,22 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
           {statusText(task.progress, task.plannedEndDate)}
         </span>
       </div>
-      <div className={role === 'EDITOR' ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
+      <div className={showActions ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
         <div className="w-full bg-dark-border rounded-full h-2.5">
           <div className="bg-neon-green h-2.5 rounded-full" style={{ width: `${task.progress}%` }}></div>
         </div>
         <p className="text-xs text-right text-gray-400 mt-1">{task.progress}%</p>
       </div>
-      {role === 'EDITOR' && (
+      {showActions && (
         <div className="col-span-3 md:col-span-1 flex justify-end items-center gap-2">
           <button onClick={() => onEdit(task)} className="p-2 text-gray-400 hover:text-neon-cyan transition-colors">
             <EditIcon />
           </button>
-          <button onClick={() => onDelete(task.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-            <DeleteIcon />
-          </button>
+          {role === 'PLANEJADOR' && (
+            <button onClick={() => onDelete(task.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+              <DeleteIcon />
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -73,6 +77,8 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
 
 const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
   const { role } = useAuth();
+  const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
+
   if (tasks.length === 0) {
     return <p className="text-center text-gray-500 py-8">Nenhuma tarefa encontrada com os filtros atuais.</p>;
   }
@@ -88,8 +94,8 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
                 <div className="col-span-6 md:col-span-2">Apoio / Vão</div>
                 <div className="col-span-6 md:col-span-2">Datas Previstas</div>
                 <div className="col-span-6 md:col-span-1">Status</div>
-                <div className={role === 'EDITOR' ? "col-span-9 md:col-span-2" : "col-span-9 md:col-span-3"}>Progresso</div>
-                {role === 'EDITOR' && (
+                <div className={showActions ? "col-span-9 md:col-span-2" : "col-span-9 md:col-span-3"}>Progresso</div>
+                {showActions && (
                   <div className="col-span-3 md:col-span-1 text-right">Ações</div>
                 )}
             </div>

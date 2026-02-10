@@ -17,7 +17,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-dark-surface p-2 border border-dark-border rounded">
         <p className="label text-white font-bold">{`Data: ${label}`}</p>
         <p className="intro text-neon-orange">{`Previsto: ${payload[0].value}`}</p>
-        <p className="intro text-neon-green">{`Realizado: ${payload[1].value}`}</p>
+        {payload[1] && payload[1].value !== null && <p className="intro text-neon-green">{`Realizado: ${payload[1].value}`}</p>}
       </div>
     );
   }
@@ -58,6 +58,8 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
 
         let plannedCumulative = 0;
         let actualCumulative = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of day for accurate comparison
 
         return dateInterval.map(day => {
             const dayKey = format(day, 'yyyy-MM-dd');
@@ -65,10 +67,12 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
             plannedCumulative += plannedMap.get(dayKey) || 0;
             actualCumulative += actualMap.get(dayKey) || 0;
 
+            const isFuture = day > today;
+
             return {
                 date: format(day, 'dd/MM'),
                 previstas: plannedCumulative,
-                realizadas: actualCumulative
+                realizadas: isFuture ? null : actualCumulative
             };
         });
 
@@ -76,14 +80,14 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
     
     if (chartData.length === 0) {
         return (
-            <div className="flex items-center justify-center h-full text-gray-500 min-h-[300px]">
+            <div className="flex items-center justify-center h-full text-gray-500 min-h-[250px]">
                 Sem dados de conclusão para exibir o gráfico.
             </div>
         );
     }
 
     return (
-        <div style={{ width: '100%', height: 350 }}>
+        <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
@@ -92,7 +96,7 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ color: '#fff' }} />
                     <Line type="monotone" dataKey="previstas" name="Previstas" stroke="#ff8c00" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="realizadas" name="Realizadas" stroke="#39ff14" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="realizadas" name="Realizadas" stroke="#39ff14" strokeWidth={2} dot={false} connectNulls={false} />
                 </LineChart>
             </ResponsiveContainer>
         </div>

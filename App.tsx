@@ -100,7 +100,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {role === 'EDITOR' && (
+          {role === 'PLANEJADOR' && (
             <button
               onClick={() => handleOpenModal(null)}
               className="flex items-center gap-2 bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg shadow-neon-cyan hover:bg-neon-cyan transition-all duration-300 transform hover:scale-105"
@@ -125,7 +125,7 @@ const App: React.FC = () => {
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
       </main>
 
-      {role === 'EDITOR' && (
+      {(role === 'PLANEJADOR' || role === 'PRODUÇÃO') && (
         <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
           <TaskForm 
             onSave={handleSaveTask} 

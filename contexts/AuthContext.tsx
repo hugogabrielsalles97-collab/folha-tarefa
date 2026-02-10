@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
-type Role = 'VIEWER' | 'EDITOR';
+type Role = 'VIEWER' | 'PLANEJADOR' | 'PRODUÇÃO';
 
 interface AuthContextType {
   role: Role | null;
@@ -18,12 +18,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (password: string): boolean => {
     if (password === 'EGTC@2026') {
-      const userRole = 'EDITOR';
+      const userRole = 'PLANEJADOR';
       sessionStorage.setItem('userRole', userRole);
       setRole(userRole);
       return true;
     }
     
+    if (password === 'EGTC#2026') {
+      const userRole = 'PRODUÇÃO';
+      sessionStorage.setItem('userRole', userRole);
+      setRole(userRole);
+      return true;
+    }
+
     // Qualquer outra senha é uma tentativa incorreta e falha o login.
     return false;
   };
