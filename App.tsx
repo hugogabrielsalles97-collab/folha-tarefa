@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { Task } from './types';
-import useLocalStorage from './hooks/useLocalStorage';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import TaskForm from './components/TaskForm';
 import Login from './components/Login';
 import { AddIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
+import { useRealtimeTasks } from './hooks/useRealtimeTasks';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
-  const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', []);
+  const { tasks, addTask, updateTask, deleteTask, loading, error } = useRealtimeTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -24,54 +24,62 @@ const App: React.FC = () => {
     setEditingTask(null);
   }, []);
 
-  const handleSaveTask = useCallback((task: Task) => {
-    // If editing, just save and bypass the check
-    if (editingTask) {
-      setTasks(prevTasks => prevTasks.map(t => (t.id === task.id ? task : t)));
-      handleCloseModal();
-      return;
-    }
+  const handleSaveTask = useCallback(async (task: Task) => {
+    const isEditing = !!editingTask;
 
-    // For new tasks, check for duplicates with overlapping dates
-    const newStart = new Date(task.plannedStartDate).getTime();
-    const newEnd = new Date(task.plannedEndDate).getTime();
-
-    const overlappingTasks = tasks.filter(existingTask => {
-      if (existingTask.name !== task.name) {
-        return false;
-      }
-      const existingStart = new Date(existingTask.plannedStartDate).getTime();
-      const existingEnd = new Date(existingTask.plannedEndDate).getTime();
-      
-      // Overlap condition: (StartA <= EndB) and (EndA >= StartB)
-      return newStart <= existingEnd && newEnd >= existingStart;
-    });
-
-    const saveTask = () => {
-        setTasks(prevTasks => [...prevTasks, task]);
+    const save = async () => {
+        if (isEditing) {
+            await updateTask(task);
+        } else {
+            await addTask(task);
+        }
         handleCloseModal();
-    }
+    };
 
-    if (overlappingTasks.length > 0) {
-      const confirmationMessage = `Já existem ${overlappingTasks.length} tarefas com o nome "${task.name}" planejadas para este período. Deseja criar mesmo assim?`;
-      if (window.confirm(confirmationMessage)) {
-        saveTask();
-      }
-      // If user cancels, do nothing, the modal remains open
+    if (!isEditing) {
+        const newStart = new Date(task.plannedStartDate).getTime();
+        const newEnd = new Date(task.plannedEndDate).getTime();
+
+        const overlappingTasks = tasks.filter(existingTask => {
+            if (existingTask.name !== task.name) {
+                return false;
+            }
+            const existingStart = new Date(existingTask.plannedStartDate).getTime();
+            const existingEnd = new Date(existingTask.plannedEndDate).getTime();
+            return newStart <= existingEnd && newEnd >= existingStart;
+        });
+
+        if (overlappingTasks.length > 0) {
+            const confirmationMessage = `Já existem ${overlappingTasks.length} tarefas com o nome "${task.name}" planejadas para este período. Deseja criar mesmo assim?`;
+            if (window.confirm(confirmationMessage)) {
+                await save();
+            }
+        } else {
+            await save();
+        }
     } else {
-      // No overlap, save directly
-      saveTask();
+        await save();
     }
-  }, [tasks, editingTask, setTasks, handleCloseModal]);
+  }, [tasks, editingTask, addTask, updateTask, handleCloseModal]);
 
-  const handleDeleteTask = useCallback((taskId: string) => {
+
+  const handleDeleteTask = useCallback(async (taskId: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+      await deleteTask(taskId);
     }
-  }, [setTasks]);
+  }, [deleteTask]);
 
   if (!role) {
     return <Login />;
+  }
+  
+  if (loading) {
+    return (
+        <div className="min-h-screen bg-dark-bg flex flex-col justify-center items-center text-neon-cyan text-xl space-y-4">
+            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-neon-magenta"></div>
+            <p>Carregando dados...</p>
+        </div>
+    );
   }
 
   return (
@@ -105,6 +113,7 @@ const App: React.FC = () => {
       </header>
       
       <main>
+        {error && <div className="bg-red-500/20 text-red-400 p-4 rounded-md mb-4 text-center">{error}</div>}
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
       </main>
 
