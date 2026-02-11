@@ -355,7 +355,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                   <h4 className="text-neon-orange font-black uppercase text-[10px] tracking-widest">Alerta de Conflito de Equipes</h4>
               </div>
               <p className="text-white text-[9px] uppercase font-bold tracking-tight leading-relaxed">
-                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas neste mesmo período.
+                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas para a tarefa <span className="text-neon-orange underline">{task.name.toUpperCase()}</span> neste mesmo período.
               </p>
               <div className="mt-4 flex flex-col gap-2">
                   <p className="text-white/40 text-[8px] uppercase font-black">Confirma a criação deste registro múltiplo?</p>
