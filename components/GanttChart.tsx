@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, Label } from 'recharts';
 import { Task } from '../types';
 
 interface GanttChartProps {
@@ -83,6 +83,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
         return <div className="flex items-center justify-center h-full text-white/5 font-black uppercase tracking-[15px]">Cronograma Indisponível</div>;
     }
 
+    const today = new Date();
+    today.setUTCHours(0,0,0,0);
+    const todayTimestamp = today.getTime();
+
     // Altura dinâmica: 35px por tarefa + margens. Mínimo de 300px.
     const dynamicHeight = Math.max(300, ganttData.length * 40 + 60);
 
@@ -111,6 +115,18 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
                     
+                    <ReferenceLine x={todayTimestamp} stroke="#ffffff" strokeOpacity={0.7} strokeDasharray="4 4">
+                        <Label 
+                            value="HOJE" 
+                            position="top" 
+                            fill="#ffffff" 
+                            fontSize={9} 
+                            fontWeight="black"
+                            offset={10}
+                            style={{ textShadow: '0 0 5px black' }}
+                        />
+                    </ReferenceLine>
+
                     <Bar dataKey="plannedRange" stackId="a" fill="transparent" shape={<g />} />
                     
                     {ganttData.map((entry, index) => {

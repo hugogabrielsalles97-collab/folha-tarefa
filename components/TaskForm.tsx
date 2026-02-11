@@ -4,6 +4,7 @@ import { Task, Discipline, TaskLevel, OAELevel } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { EyeIcon } from './icons';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -256,6 +257,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         {isViewer ? 'DETALHES DA' : 'REGISTRAR'} <span className="text-neon-orange">TAREFA</span>
       </h2>
       
+      {isViewer && (
+        <div className="flex items-center gap-3 bg-dark-bg border-l-4 border-neon-cyan p-4 -mt-2 mb-2">
+          <EyeIcon />
+          <p className="text-xs text-white/70">
+            <span className="font-bold text-white uppercase tracking-wider">Modo Visualização:</span> As edições estão desabilitadas.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SelectField label="Disciplina" name="discipline" value={task.discipline} onChange={handleChange} disabled={isProductionUser || isViewer}>
             {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
