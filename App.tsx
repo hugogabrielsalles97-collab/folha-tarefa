@@ -81,7 +81,7 @@ const App: React.FC = () => {
             onClick={logout}
             className="text-[11px] font-black text-white/50 hover:text-neon-magenta border border-white/10 px-4 py-2 uppercase tracking-widest transition-colors"
           >
-            Terminal Logout
+            Logout
           </button>
         </div>
       </header>
