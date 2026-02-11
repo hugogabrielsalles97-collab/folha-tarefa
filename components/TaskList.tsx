@@ -39,29 +39,29 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   const status = getStatusInfo(task);
 
   const getStatusStyle = () => {
-    return `text-${status.colorClass} border-${status.colorClass}/40 bg-${status.colorClass}/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]`;
+    return `text-${status.colorClass} border-${status.colorClass}/40 bg-${status.colorClass}/10 shadow-[0_0_10px_rgba(255,255,255,0.1)] print:text-black print:border-black print:bg-white`;
   };
 
   const getProgressColorClass = () => {
-    return `bg-${status.colorClass} shadow-[0_0_15px_${status.hex}]`;
+    return `bg-${status.colorClass} shadow-[0_0_15px_${status.hex}] progress-bar-fill`;
   };
 
   return (
-    <div className="grid grid-cols-12 gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group">
+    <div className="grid grid-cols-12 gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
       <div className="col-span-12 md:col-span-3">
-        <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors">{task.name.toUpperCase()}</p>
-        <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5">{task.discipline} / {task.level}</p>
+        <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors print:text-black print:font-bold">{task.name.toUpperCase()}</p>
+        <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
-      <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">OAE</span>
+      <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">OAE</span>
         {task.obraDeArte || '---'}
       </div>
-      <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">LOCAL</span>
+      <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">LOCAL</span>
         {task.apoio || task.vao || task.corte || '---'}
       </div>
-      <div className="col-span-4 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">DATAS PREVISTAS</span>
+      <div className="col-span-4 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight print:text-black print:font-bold">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">DATAS PREVISTAS</span>
         {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
         {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
       </div>
@@ -72,10 +72,10 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
       <div className={showActions ? "col-span-4 md:col-span-2" : "col-span-6 md:col-span-3"}>
         <div className="flex items-center gap-2">
-            <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden">
+            <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
             </div>
-            <span className="text-[11px] font-black text-white/90 w-8 text-right font-mono">{task.progress}%</span>
+            <span className="text-[11px] font-black text-white/90 w-8 text-right font-mono print:text-black">{task.progress}%</span>
         </div>
       </div>
       {showActions && (
@@ -106,9 +106,9 @@ const SortableHeader: React.FC<{
 
     return (
         <div className={`${className} ${centered ? 'flex justify-center' : ''}`}>
-            <button onClick={() => onSort(sortKey)} className={`flex items-center gap-1 text-white/30 hover:text-neon-cyan transition-colors uppercase text-[9px] font-black tracking-[1px] ${centered ? 'text-center' : ''}`}>
+            <button onClick={() => onSort(sortKey)} className={`flex items-center gap-1 text-white/30 hover:text-neon-cyan transition-colors uppercase text-[9px] font-black tracking-[1px] ${centered ? 'text-center' : ''} print:text-black print:border-none`}>
                 {title}
-                {isSorted && <span className="text-neon-orange text-[9px]">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
+                {isSorted && <span className="text-neon-orange text-[9px] print:text-black">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
             </button>
         </div>
     );
@@ -119,22 +119,22 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
   const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
 
   if (tasks.length === 0) {
-    return <p className="text-center text-white/20 font-black py-20 uppercase tracking-[10px]">TERMINAL VAZIO</p>;
+    return <p className="text-center text-white/20 font-black py-20 uppercase tracking-[10px] print:text-black">TERMINAL VAZIO</p>;
   }
 
   return (
     <div className="overflow-x-auto overflow-y-hidden">
         <div className="min-w-[800px] md:min-w-full">
-            <div className="grid grid-cols-12 gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2">
+            <div className="grid grid-cols-12 gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
                 <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Datas Prev." sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
                 <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-4 md:col-span-2" : "col-span-6 md:col-span-3"} />
-                {showActions && <div className="col-span-2 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest">Opções</div>}
+                {showActions && <div className="col-span-2 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Opções</div>}
             </div>
-            <div className="divide-y divide-white/[0.03]">
+            <div className="divide-y divide-white/[0.03] print:divide-black">
                 {tasks.map(task => (
                     <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
                 ))}

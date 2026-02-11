@@ -40,7 +40,6 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
   const [ganttOAEFilter, setGanttOAEFilter] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Task | 'status'; direction: 'asc' | 'desc' }>({ key: 'plannedStartDate', direction: 'asc' });
 
-  // Consolidação de todos os níveis possíveis para o filtro
   const allAvailableLevels = useMemo(() => {
     return Array.from(new Set(Object.values(DISCIPLINE_LEVELS).flat()));
   }, []);

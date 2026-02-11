@@ -114,9 +114,70 @@
       }
 
       @media print {
-        body { background: white !important; color: black !important; }
-        .technical-frame { box-shadow: none !important; border: 1px solid #000 !important; }
-        .corner-marker { display: none; }
+        @page {
+          margin: 1cm;
+          size: portrait;
+        }
+        
+        body { 
+          background: white !important; 
+          background-image: none !important;
+          color: black !important;
+        }
+
+        header, .print-hidden {
+          display: none !important;
+        }
+
+        .blueprint-grid {
+          background-image: none !important;
+        }
+
+        .technical-frame { 
+          box-shadow: none !important; 
+          border: 1px solid #000 !important; 
+          background: white !important;
+          padding: 0 !important;
+        }
+
+        .technical-frame::before {
+          display: none;
+        }
+
+        .eng-header-tab {
+          background: black !important;
+          color: white !important;
+          box-shadow: none !important;
+          border: 1px solid black !important;
+          margin-bottom: 10px !important;
+        }
+
+        .corner-marker { 
+          display: none !important; 
+        }
+
+        /* Garantir texto preto em tudo na impressão */
+        * {
+          color: black !important;
+          text-shadow: none !important;
+          box-shadow: none !important;
+          border-color: #333 !important;
+        }
+
+        /* Estilo para a barra de progresso na impressão */
+        .progress-bar-bg {
+          border: 1px solid black !important;
+          background-color: #f0f0f0 !important;
+        }
+        
+        .progress-bar-fill {
+          background-color: black !important;
+        }
+
+        /* Esconder ícones e botões de ação */
+        button, select, input, .print\:hidden {
+          display: none !important;
+        }
       }
     </style>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
