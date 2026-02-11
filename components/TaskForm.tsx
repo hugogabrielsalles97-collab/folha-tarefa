@@ -271,7 +271,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                         Alerta de Conflito de Equipes
                     </p>
                     <p className="text-[9px] text-neon-orange font-bold uppercase">
-                        detectamos que já possui <span className="text-white text-xs">{duplicateWarning.count}</span> registros de equipes alocadas neste mesmo período.
+                        detectamos que já possui <span className="text-white text-xs">{duplicateWarning.count}</span> registros de equipes <span className="text-white italic">"{task.name}"</span> alocadas neste mesmo período.
                     </p>
                 </div>
             </div>
