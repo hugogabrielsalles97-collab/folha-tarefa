@@ -93,26 +93,26 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     setLoadingWeather(type);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Aja como um engenheiro de planejamento especialista em meteorologia. 
+      const promptText = `Aja como um engenheiro de planejamento especialista em meteorologia para construção civil. 
       Forneça um resumo técnico do clima EXCLUSIVAMENTE para a localização de Paracambi-RJ. 
       Período solicitado: de ${startDate} até ${endDate}. 
-      Tarefa de campo: "${task.name}" na disciplina de "${task.discipline}".
+      Tarefa de campo: "${task.name || 'Atividades de obra'}" na disciplina de "${task.discipline}".
       
-      Instruções:
-      1. Se o período for FUTURO, forneça a previsão de chuvas e temperaturas.
-      2. Se o período for PASSADO, forneça o histórico meteorológico real verificado.
-      3. Indique janelas de trabalho favoráveis ou riscos de paralisação por chuva (pluviometria) para atividades de ${task.discipline}.
-      Seja técnico e conciso (máximo de 250 caracteres).`;
+      Instruções Obrigatórias:
+      1. Se o período for FUTURO, forneça a previsão de chuvas, temperatura e umidade.
+      2. Se o período for PASSADO, forneça o histórico meteorológico real verificado para Paracambi.
+      3. Indique janelas de trabalho favoráveis ou riscos (ex: lama, impossibilidade de concretagem) para atividades de ${task.discipline}.
+      Responda de forma técnica e objetiva em no máximo 250 caracteres.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
+        model: 'gemini-3-pro-preview',
+        contents: [{ parts: [{ text: promptText }] }],
         config: { 
           tools: [{ googleSearch: {} }] 
         }
       });
 
-      const weatherText = response.text || "Dados meteorológicos indisponíveis para este período em Paracambi-RJ.";
+      const weatherText = response.text || "Dados meteorológicos temporariamente indisponíveis para Paracambi.";
       const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
       setTask(prev => ({ 
@@ -123,9 +123,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         ...prev,
         [type]: sources
       }));
-    } catch (error) {
-      console.error("Erro na API Gemini:", error);
-      alert("Falha técnica ao acessar serviços meteorológicos de Paracambi. Verifique sua conexão ou tente novamente.");
+    } catch (error: any) {
+      console.error("Erro detalhado na API Gemini Weather:", error);
+      const errorMsg = error?.message || "";
+      if (errorMsg.includes("Search tool is not enabled")) {
+        alert("A ferramenta de busca do Google não está habilitada nesta chave de API.");
+      } else {
+        alert("Falha técnica ao acessar serviços meteorológicos de Paracambi. Tente novamente em instantes.");
+      }
     } finally {
       setLoadingWeather(null);
     }
@@ -163,7 +168,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
               rel="noopener noreferrer"
               className="text-[7px] text-neon-cyan hover:underline truncate max-w-[150px]"
             >
-              {chunk.web.title || 'Referência'}
+              {chunk.web.title || 'Link'}
             </a>
           )
         ))}
@@ -177,7 +182,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         <h2 className="text-lg font-black text-white uppercase tracking-[4px]">
           Folha de <span className="text-neon-orange">Registro Técnico</span>
         </h2>
-        <p className="text-[7px] font-black text-neon-cyan/50 uppercase tracking-widest mt-1">Localidade Padrão: Paracambi - RJ</p>
+        <p className="text-[7px] font-black text-neon-cyan/50 uppercase tracking-widest mt-1">Sincronização Meteorológica: Paracambi - RJ</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -199,7 +204,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       <InputField label="Descrição da Atividade" name="name" value={task.name} onChange={handleChange} placeholder="Ex: Montagem de Cimbramento..." />
 
       <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
-          {/* Módulo Clima Planejado */}
           <div className="bg-neon-orange/5 p-3 border border-neon-orange/20 relative overflow-hidden">
             <div className="flex justify-between items-center mb-3">
                 <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest">Cronograma Planejado</p>
@@ -207,9 +211,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                   type="button" 
                   onClick={() => fetchWeather('planned')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-orange text-[8px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-orange text-[8px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 shadow-sm shadow-neon-orange/20"
                 >
-                    {loadingWeather === 'planned' ? 'Analizando...' : <><WeatherIcon /> Previsão Paracambi</>}
+                    {loadingWeather === 'planned' ? 'Processando...' : <><WeatherIcon /> Previsão Clima</>}
                 </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -224,7 +228,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             )}
           </div>
 
-          {/* Módulo Clima Realizado */}
           <div className="bg-neon-green/5 p-3 border border-neon-green/20">
             <div className="flex justify-between items-center mb-3">
                 <p className="text-[9px] font-black text-neon-green uppercase tracking-widest">Execução Real</p>
@@ -232,9 +235,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                   type="button" 
                   onClick={() => fetchWeather('actual')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-green text-[8px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-green text-[8px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 shadow-sm shadow-neon-green/20"
                 >
-                    {loadingWeather === 'actual' ? 'Sincronizando...' : <><WeatherIcon /> Histórico Real</>}
+                    {loadingWeather === 'actual' ? 'Consultando...' : <><WeatherIcon /> Histórico Real</>}
                 </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -265,12 +268,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           />
       </div>
 
-      <TextareaField label="Observações e Impedimentos" name="observations" value={task.observations} onChange={handleChange} placeholder="Relate condições de acesso, equipamentos ou atrasos..." />
+      <TextareaField label="Observações de Campo" name="observations" value={task.observations} onChange={handleChange} placeholder="Relate impedimentos, chuvas ou atrasos..." />
 
       <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-dark-surface z-10 border-t border-dark-border py-4 mt-6">
         <button type="button" onClick={onCancel} className="text-white/30 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors px-4">Cancelar</button>
         {!isViewer && (
-            <button type="submit" className="bg-neon-cyan text-black font-black py-2.5 px-10 uppercase text-[11px] tracking-[2px] hover:bg-white shadow-neon-cyan transition-all active:scale-95">
+            <button type="submit" className="bg-neon-cyan text-black font-black py-2.5 px-10 rounded-sm uppercase text-[11px] tracking-[2px] hover:bg-white shadow-[0_0_15px_rgba(0,243,255,0.4)] transition-all active:scale-95">
               Confirmar Registro
             </button>
         )}
