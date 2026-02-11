@@ -8,6 +8,7 @@ interface TaskFormProps {
   onSave: (task: Task) => void;
   onCancel: () => void;
   existingTask: Task | null;
+  allTasks: Task[];
 }
 
 const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder }: { label: string, name: string, value?: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string }) => (
@@ -54,7 +55,7 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, name, value, onChange,
      </div>
 );
 
-const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, allTasks }) => {
   const { role } = useAuth();
   const isProductionUser = role === 'PRODUÇÃO';
 
@@ -75,6 +76,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [duplicateWarning, setDuplicateWarning] = useState<{ count: number } | null>(null);
 
   useEffect(() => {
     if (existingTask) {
@@ -85,6 +87,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
+    // Resetar aviso de duplicidade se o usuário alterar dados chave
+    if (['name', 'plannedStartDate', 'plannedEndDate'].includes(name)) {
+        setDuplicateWarning(null);
+    }
+
     setTask(prev => {
         const newState = {...prev, [name]: value};
         if(name === 'discipline') {
@@ -117,9 +124,26 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
     return Object.keys(newErrors).length === 0;
   }
 
+  const checkDuplicates = () => {
+    const duplicates = allTasks.filter(t => 
+        t.name === task.name && 
+        t.plannedStartDate === task.plannedStartDate && 
+        t.plannedEndDate === task.plannedEndDate &&
+        t.id !== existingTask?.id
+    );
+    return duplicates.length;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+
+    // Se ainda não mostramos o aviso e existem duplicatas, mostrar agora
+    const dupCount = checkDuplicates();
+    if (dupCount > 0 && !duplicateWarning) {
+        setDuplicateWarning({ count: dupCount });
+        return;
+    }
 
     const taskToSave: Task = {
       id: existingTask?.id || crypto.randomUUID(),
@@ -223,10 +247,34 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
           <input type="range" min="0" max="100" value={task.progress || 0} onChange={handleProgressChange} className="w-full h-1 bg-dark-bg appearance-none cursor-pointer accent-neon-cyan" />
       </div>
 
+      {duplicateWarning && (
+        <div className="bg-neon-orange/10 border border-neon-orange p-4 animate-pulse">
+            <div className="flex items-center gap-3">
+                <div className="text-neon-orange">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-white uppercase tracking-wider">
+                        Alerta de Sobreposição Técnica
+                    </p>
+                    <p className="text-[9px] text-neon-orange font-bold uppercase">
+                        Detectamos <span className="text-white text-xs">{duplicateWarning.count}</span> tarefa(s) idêntica(s) com esta descrição para este período.
+                    </p>
+                </div>
+            </div>
+            <p className="text-[8px] text-white/60 mt-2 italic">Deseja prosseguir com a criação de múltiplos registros para a mesma atividade?</p>
+        </div>
+      )}
+
       <div className="flex justify-end gap-4 pt-8">
         <button type="button" onClick={onCancel} className="text-white/30 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors">Cancelar</button>
-        <button type="submit" className="bg-transparent text-neon-cyan font-black py-3 px-8 border-2 border-neon-cyan shadow-neon-cyan hover:bg-neon-cyan hover:text-black uppercase text-xs tracking-[2px] transition-all">
-          Confirmar Dados
+        <button 
+            type="submit" 
+            className={`font-black py-3 px-8 border-2 uppercase text-xs tracking-[2px] transition-all ${duplicateWarning ? 'bg-neon-orange border-neon-orange text-black shadow-neon-orange hover:bg-white hover:border-white' : 'bg-transparent text-neon-cyan border-neon-cyan shadow-neon-cyan hover:bg-neon-cyan hover:text-black'}`}
+        >
+          {duplicateWarning ? 'Confirmar Duplicidade' : 'Confirmar Dados'}
         </button>
       </div>
     </form>

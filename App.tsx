@@ -98,7 +98,12 @@ const App: React.FC = () => {
 
       {(role === 'PLANEJADOR' || role === 'PRODUÇÃO') && (
         <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-          <TaskForm onSave={handleSaveTask} onCancel={handleCloseModal} existingTask={editingTask} />
+          <TaskForm 
+            onSave={handleSaveTask} 
+            onCancel={handleCloseModal} 
+            existingTask={editingTask} 
+            allTasks={tasks}
+          />
         </Modal>
       )}
     </div>
