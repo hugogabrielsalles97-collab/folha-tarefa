@@ -1,4 +1,4 @@
-import { Discipline, OAELevel, TerraplanagemLevel, ContencoesLevel } from './types';
+import { Discipline, OAELevel, TerraplanagemLevel, ContencoesLevel, UnitOfMeasurement } from './types';
 
 export const DISCIPLINE_LEVELS: Record<Discipline, string[]> = {
   [Discipline.OAE]: Object.values(OAELevel),
@@ -21,6 +21,8 @@ export const VAOS_OPTIONS = [
   'P5-P6', 'P6-P7', 'P7-P8', 'P8-P9', 'P9-P10', 'P10-E2', 'P1-E2', 'P2-E2',
   'P3-E2', 'P4-E2', 'P5-E2', 'P6-E2', 'P7-E2', 'P8-E2'
 ];
+
+export const UNIDADE_MEDIDA_OPTIONS: UnitOfMeasurement[] = ['un', 'm', 'm²', 'm³', 'kg', 't'];
 
 export const FUNDACOES_TASK_NAMES = [
   'Estaca Raiz',

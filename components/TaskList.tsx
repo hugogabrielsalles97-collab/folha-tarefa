@@ -51,7 +51,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   return (
     <div className="grid grid-cols-12 gap-y-4 md:gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
       {/* Nome e Disciplina */}
-      <div className="col-span-12 md:col-span-3">
+      <div className="col-span-12 md:col-span-2">
         <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors print:text-black print:font-bold">{task.name.toUpperCase()}</p>
         <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
@@ -75,15 +75,22 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
       </div>
 
+      {/* QUANTIDADES */}
+      <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Quantidades</span>
+        <div><span className="text-neon-orange/80 font-black">P: </span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</div>
+        <div><span className="text-neon-green/80 font-black">R: </span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</div>
+      </div>
+      
       {/* STATUS */}
-      <div className="col-span-4 md:col-span-2 flex justify-center">
+      <div className="col-span-6 md:col-span-1 flex justify-center">
         <span className={`px-1 py-1 text-[8px] font-black border rounded-none tracking-tighter text-center w-full max-w-[100px] ${getStatusStyle()}`}>
           {status.text}
         </span>
       </div>
 
       {/* PROGRESSO */}
-      <div className={showViewButton ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"}>
+      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -142,12 +149,13 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
         <div className="w-full">
             {/* Cabeçalho Responsivo */}
             <div className="grid grid-cols-12 gap-y-2 md:gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
-                <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
+                <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" />
                 <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Previsto" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
-                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"} />
+                <SortableHeader title="Quantidades" sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
+                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />
                 {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
             </div>
             {/* Lista de Itens */}

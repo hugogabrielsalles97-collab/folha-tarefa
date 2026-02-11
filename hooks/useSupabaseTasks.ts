@@ -5,11 +5,11 @@ import { Task } from '../types';
 
 const filterTaskForDB = (task: Partial<Task>): any => {
     // Definimos apenas as chaves que existem comprovadamente no banco de dados.
-    // 'plannedQuantity', 'actualQuantity' e 'quantityUnit' foram removidos para cessar o erro de PostgREST.
     const allowedKeys: (keyof DBTask)[] = [
         'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
-        'actualStartDate', 'actualEndDate', 'progress'
+        'actualStartDate', 'actualEndDate', 'progress',
+        'plannedQuantity', 'actualQuantity', 'quantityUnit'
     ];
 
     const sanitized: any = {};
@@ -17,13 +17,20 @@ const filterTaskForDB = (task: Partial<Task>): any => {
     allowedKeys.forEach(key => {
         if (key in task) {
             const value = (task as any)[key];
-            if (['progress'].includes(key as string)) {
-                sanitized[key] = value === '' || value === null || value === undefined ? 0 : Number(value);
+            if (['progress', 'plannedQuantity', 'actualQuantity'].includes(key as string)) {
+                // Para quantidades e progresso, converte para número ou null se vazio.
+                sanitized[key] = value === '' || value === null || value === undefined ? null : Number(value);
             } else {
+                // Para outros campos, converte string vazia para null.
                 sanitized[key] = value === '' ? null : value;
             }
         }
     });
+
+    // Garante que o progresso nunca seja nulo no DB se não for fornecido
+    if (sanitized.progress === null) {
+        sanitized.progress = 0;
+    }
 
     return sanitized;
 };

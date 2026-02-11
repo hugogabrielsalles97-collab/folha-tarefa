@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Discipline, TaskLevel } from '../types';
+import { Discipline, TaskLevel, UnitOfMeasurement } from '../types';
 
 export interface DBTask {
   id: string;
@@ -17,7 +17,9 @@ export interface DBTask {
   plannedEndDate: string;
   actualStartDate?: string;
   actualEndDate?: string;
-  // Campos plannedQuantity, actualQuantity e quantityUnit omitidos para compatibilidade com o schema atual.
+  plannedQuantity?: number;
+  actualQuantity?: number;
+  quantityUnit?: UnitOfMeasurement;
   progress: number;
 }
 

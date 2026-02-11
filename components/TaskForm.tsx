@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Task, Discipline, TaskLevel, OAELevel } from '../types';
-import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL } from '../constants';
+import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaskFormProps {
@@ -11,7 +11,7 @@ interface TaskFormProps {
   allTasks: Task[];
 }
 
-const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder, errorType, min, max }: { label: string, name: string, value?: any, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string, errorType?: 'default' | 'critical', min?: string | number, max?: string | number }) => {
+const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder, errorType, min, max, step }: { label: string, name: string, value?: any, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string, errorType?: 'default' | 'critical', min?: string | number, max?: string | number, step?: string }) => {
     return (
         <div className="mb-1.5">
           <label htmlFor={name} className="block text-[9px] font-black text-neon-cyan uppercase tracking-widest mb-0.5">{label}</label>
@@ -25,6 +25,7 @@ const InputField = ({ label, name, value, onChange, type = 'text', error, disabl
             placeholder={placeholder}
             min={min}
             max={max}
+            step={step}
             className={`w-full border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 font-mono text-xs focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`} 
           />
           {error && (
@@ -75,6 +76,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     plannedEndDate: '',
     actualStartDate: '',
     actualEndDate: '',
+    plannedQuantity: undefined,
+    actualQuantity: undefined,
+    quantityUnit: undefined,
     progress: 0,
     observations: '',
   });
@@ -89,29 +93,36 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     }
   }, [existingTask]);
 
+  useEffect(() => {
+    const planned = task.plannedQuantity;
+    const actual = task.actualQuantity;
+    let newProgress = 0;
+
+    // Calculate progress only if there's a start date and valid quantities
+    if (task.actualStartDate && planned && planned > 0 && actual && actual >= 0) {
+      newProgress = Math.min(100, Math.round((actual / planned) * 100));
+    }
+
+    // Only update state if progress has changed to prevent infinite loops
+    if (task.progress !== newProgress) {
+      setTask(prev => ({ ...prev, progress: newProgress }));
+    }
+  }, [task.plannedQuantity, task.actualQuantity, task.actualStartDate, task.progress]);
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     if (isViewer) return;
     const { name, value } = e.target;
     
-    // Regra Crítica: Não permite avançar progresso se não houver data de início real
-    if (name === 'progress' && !task.actualStartDate) {
-        setErrors(prev => ({ ...prev, progress: 'Defina o Início Real primeiro.' }));
-        return;
-    }
-
     setTask(prev => {
         let val: any = value;
-        if (name === 'progress') {
-            val = Math.min(100, Math.max(0, Number(value) || 0));
+        
+        if (name === 'plannedQuantity' || name === 'actualQuantity') {
+            val = value === '' ? undefined : Number(value);
         }
 
         const updated = { ...prev, [name]: val };
         
-        // Se limpar a data de início real, o progresso deve voltar a 0
-        if (name === 'actualStartDate' && !value) {
-            updated.progress = 0;
-        }
-
         if (name === 'discipline') {
             updated.level = '';
             updated.name = '';
@@ -195,12 +206,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const showVao = task.discipline === Discipline.OAE && task.level === OAELevel.SUPERESTRUTURA;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 max-h-[85vh] overflow-y-auto pr-1 custom-scrollbar">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
       <h2 className="text-base font-black text-white uppercase tracking-[3px] border-b border-dark-border pb-1.5 mb-2">
         {isViewer ? 'DETALHES DA' : 'REGISTRAR'} <span className="text-neon-orange">TAREFA</span>
       </h2>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SelectField label="Disciplina" name="discipline" value={task.discipline} onChange={handleChange} disabled={isProductionUser || isViewer}>
             {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
         </SelectField>
@@ -211,8 +222,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       </div>
 
       <div className="bg-white/5 p-3 border border-dark-border">
-        {task.discipline === Discipline.OAE ? (
-            <div className={`grid ${showApoio || showVao ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+          {task.discipline === Discipline.OAE ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <SelectField label="OAE" name="obraDeArte" value={task.obraDeArte} onChange={handleChange} disabled={isProductionUser || isViewer}>
                     <option value="">---</option>
                     {OBRAS_DE_ARTE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -230,15 +241,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                     </SelectField>
                 )}
             </div>
-        ) : (
+          ) : (
             <div className="grid grid-cols-2 gap-3">
                 <InputField label="Frente" name="frente" value={task.frente} onChange={handleChange} disabled={isProductionUser || isViewer} />
                 <InputField label="Corte" name="corte" value={task.corte} onChange={handleChange} disabled={isProductionUser || isViewer} />
             </div>
-        )}
+          )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid grid-cols-1 gap-2 pt-2">
           {OAE_TASK_NAMES_BY_LEVEL[task.level] ? (
               <SelectField label="Descrição da Tarefa" name="name" value={task.name} onChange={handleChange} error={errors.name} disabled={isProductionUser || isViewer}>
                   <option value="">Selecione a tarefa...</option>
@@ -249,21 +260,31 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           )}
       </div>
 
+      <div className="pt-2">
+        <SelectField label="Unidade de Medida" name="quantityUnit" value={task.quantityUnit} onChange={handleChange} disabled={isProductionUser || isViewer}>
+            <option value="">Selecione a Unidade...</option>
+            {UNIDADE_MEDIDA_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+        </SelectField>
+      </div>
+
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-orange">
         <p className="text-[10px] font-black text-neon-orange uppercase mb-3 tracking-widest">Cronograma Planejado</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <InputField label="Data Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
             <InputField label="Data Término" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
+            <InputField label="Quantidade Prevista" name="plannedQuantity" type="number" step="0.01" value={task.plannedQuantity} onChange={handleChange} disabled={isProductionUser || isViewer} />
         </div>
       </div>
 
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-green">
         <p className="text-[10px] font-black text-neon-green uppercase mb-3 tracking-widest">Execução em Campo</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
             <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
+            <InputField label="Quantidade Realizada" name="actualQuantity" type="number" step="0.01" value={task.actualQuantity} onChange={handleChange} disabled={isViewer} />
         </div>
       </div>
+
 
       <div className={`pt-2 transition-opacity ${!task.actualStartDate ? 'opacity-40' : 'opacity-100'}`}>
           <div className="flex justify-between items-end mb-1">
@@ -273,7 +294,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             </span>
           </div>
           <div className={`relative h-4 bg-dark-bg border ${errors.progress ? 'border-neon-magenta shadow-neon-magenta' : 'border-dark-border'} group overflow-hidden`}>
-            {/* Barra de Progresso Visual */}
             <div 
                 className="absolute top-0 left-0 h-full"
                 style={{ 
@@ -282,7 +302,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                     boxShadow: task.actualStartDate ? `0 0 15px ${progressColor}88` : 'none'
                 }}
             />
-            {/* Input Range Invisível (Overlay) */}
             <input 
                 type="range"
                 name="progress"
@@ -290,9 +309,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                 max="100"
                 step="1"
                 value={task.progress}
-                onChange={handleChange}
-                disabled={isViewer || !task.actualStartDate}
-                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                disabled={true}
+                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-not-allowed z-10"
             />
           </div>
           {errors.progress ? (
@@ -300,8 +318,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           ) : (
               <p className="text-[7px] text-white/30 uppercase font-black mt-1 tracking-tighter">
                 {!task.actualStartDate 
-                    ? 'BLOQUEADO: Defina a data de início real para habilitar o registro de avanço' 
-                    : 'Arraste para atualizar o status de execução técnica em tempo real'}
+                    ? 'BLOQUEADO: Defina a data de início real para habilitar o cálculo de avanço' 
+                    : 'AVANÇO CALCULADO AUTOMATICAMENTE (REALIZADO / PREVISTO)'}
               </p>
           )}
       </div>

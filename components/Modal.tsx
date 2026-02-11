@@ -17,7 +17,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
       onClick={onClose}
     >
       <div
-        className="bg-dark-surface w-full max-w-2xl border-2 border-neon-cyan/50 shadow-[0_0_30px_rgba(0,243,255,0.2)] relative animate-in fade-in zoom-in duration-300"
+        className="bg-dark-surface w-full max-w-4xl border-2 border-neon-cyan/50 shadow-[0_0_30px_rgba(0,243,255,0.2)] relative animate-in fade-in zoom-in duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="corner-marker corner-tl"></div>

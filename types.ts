@@ -25,6 +25,8 @@ export enum ContencoesLevel {
 
 export type TaskLevel = OAELevel | TerraplanagemLevel | ContencoesLevel | '';
 
+export type UnitOfMeasurement = 'un' | 'm' | 'm²' | 'm³' | 'kg' | 't';
+
 export interface Task {
   id: string;
   created_at?: string;
@@ -45,6 +47,10 @@ export interface Task {
 
   plannedWeather?: string;
   actualWeather?: string;
+
+  plannedQuantity?: number;
+  actualQuantity?: number;
+  quantityUnit?: UnitOfMeasurement;
   
   progress: number; // 0-100
   observations?: string;
