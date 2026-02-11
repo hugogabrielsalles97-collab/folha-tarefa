@@ -47,30 +47,41 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   };
 
   return (
-    <div className="grid grid-cols-12 gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
+    <div className="grid grid-cols-12 gap-y-4 md:gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
+      {/* Nome e Disciplina */}
       <div className="col-span-12 md:col-span-3">
         <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors print:text-black print:font-bold">{task.name.toUpperCase()}</p>
         <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
+
+      {/* OAE */}
       <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">OAE</span>
         {task.obraDeArte || '---'}
       </div>
+
+      {/* LOCAL - Agora visível e identificado no mobile */}
       <div className="col-span-4 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">LOCAL</span>
         {task.apoio || task.vao || task.corte || '---'}
       </div>
+
+      {/* DATAS */}
       <div className="col-span-4 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight print:text-black print:font-bold">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">DATAS PREVISTAS</span>
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">PREVISTO</span>
         {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
         {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
       </div>
-      <div className="col-span-6 md:col-span-2 flex justify-center">
+
+      {/* STATUS */}
+      <div className="col-span-4 md:col-span-2 flex justify-center">
         <span className={`px-1 py-1 text-[8px] font-black border rounded-none tracking-tighter text-center w-full max-w-[100px] ${getStatusStyle()}`}>
           {status.text}
         </span>
       </div>
-      <div className={showActions ? "col-span-4 md:col-span-2" : "col-span-6 md:col-span-3"}>
+
+      {/* PROGRESSO */}
+      <div className={showActions ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -78,13 +89,15 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
             <span className="text-[11px] font-black text-white/90 w-8 text-right font-mono print:text-black">{task.progress}%</span>
         </div>
       </div>
+
+      {/* AÇÕES - Visíveis e acessíveis no mobile */}
       {showActions && (
-        <div className="col-span-2 md:col-span-1 flex justify-end gap-1 print:hidden">
-          <button onClick={() => onEdit(task)} title="Editar" className="p-1.5 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all">
+        <div className="col-span-3 md:col-span-1 flex justify-end gap-2 print:hidden">
+          <button onClick={() => onEdit(task)} title="Editar" className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all active:scale-90">
             <EditIcon />
           </button>
           {role === 'PLANEJADOR' && (
-            <button onClick={() => onDelete(task.id)} title="Excluir" className="p-1.5 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-magenta hover:border-neon-magenta transition-all">
+            <button onClick={() => onDelete(task.id)} title="Excluir" className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-magenta hover:border-neon-magenta transition-all active:scale-90">
               <DeleteIcon />
             </button>
           )}
@@ -123,17 +136,19 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
   }
 
   return (
-    <div className="overflow-x-auto overflow-y-hidden">
-        <div className="min-w-[800px] md:min-w-full">
-            <div className="grid grid-cols-12 gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
+    <div className="overflow-x-hidden">
+        <div className="w-full">
+            {/* Cabeçalho Responsivo */}
+            <div className="grid grid-cols-12 gap-y-2 md:gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
                 <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
-                <SortableHeader title="Datas Prev." sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
-                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-4 md:col-span-2" : "col-span-6 md:col-span-3"} />
-                {showActions && <div className="col-span-2 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Opções</div>}
+                <SortableHeader title="Previsto" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
+                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"} />
+                {showActions && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Ops</div>}
             </div>
+            {/* Lista de Itens */}
             <div className="divide-y divide-white/[0.03] print:divide-black">
                 {tasks.map(task => (
                     <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
