@@ -87,7 +87,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Resetar aviso de duplicidade se o usuário alterar dados chave
+    // Resetar aviso de duplicidade se o usuário alterar dados fundamentais da verificação
     if (['name', 'plannedStartDate', 'plannedEndDate'].includes(name)) {
         setDuplicateWarning(null);
     }
@@ -125,20 +125,31 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   }
 
   const checkDuplicates = () => {
-    const duplicates = allTasks.filter(t => 
-        t.name === task.name && 
-        t.plannedStartDate === task.plannedStartDate && 
-        t.plannedEndDate === task.plannedEndDate &&
-        t.id !== existingTask?.id
-    );
-    return duplicates.length;
+    const currentName = task.name;
+    const currentStart = task.plannedStartDate;
+    const currentEnd = task.plannedEndDate;
+
+    if (!currentName || !currentStart || !currentEnd) return 0;
+
+    // Regra de Overlap: (Início_A <= Fim_B) && (Fim_A >= Início_B)
+    const overlaps = allTasks.filter(t => {
+        const isSameName = t.name === currentName;
+        const isDifferentId = t.id !== existingTask?.id;
+        
+        // Comparação de Strings ISO (YYYY-MM-DD) funciona para ordem cronológica
+        const intersects = (currentStart <= t.plannedEndDate) && (currentEnd >= t.plannedStartDate);
+        
+        return isSameName && isDifferentId && intersects;
+    });
+
+    return overlaps.length;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    // Se ainda não mostramos o aviso e existem duplicatas, mostrar agora
+    // Verificação de intersecção de período
     const dupCount = checkDuplicates();
     if (dupCount > 0 && !duplicateWarning) {
         setDuplicateWarning({ count: dupCount });
@@ -257,14 +268,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                 </div>
                 <div>
                     <p className="text-[10px] font-black text-white uppercase tracking-wider">
-                        Alerta de Sobreposição Técnica
+                        Alerta de Conflito de Período
                     </p>
                     <p className="text-[9px] text-neon-orange font-bold uppercase">
-                        Detectamos <span className="text-white text-xs">{duplicateWarning.count}</span> tarefa(s) idêntica(s) com esta descrição para este período.
+                        Detectamos <span className="text-white text-xs">{duplicateWarning.count}</span> registro(s) com esta descrição cujos períodos se sobrepõem ao atual.
                     </p>
                 </div>
             </div>
-            <p className="text-[8px] text-white/60 mt-2 italic">Deseja prosseguir com a criação de múltiplos registros para a mesma atividade?</p>
+            <p className="text-[8px] text-white/60 mt-2 italic">A mesma atividade já está planejada ou em curso neste intervalo. Confirmar sobreposição?</p>
         </div>
       )}
 
@@ -274,7 +285,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             type="submit" 
             className={`font-black py-3 px-8 border-2 uppercase text-xs tracking-[2px] transition-all ${duplicateWarning ? 'bg-neon-orange border-neon-orange text-black shadow-neon-orange hover:bg-white hover:border-white' : 'bg-transparent text-neon-cyan border-neon-cyan shadow-neon-cyan hover:bg-neon-cyan hover:text-black'}`}
         >
-          {duplicateWarning ? 'Confirmar Duplicidade' : 'Confirmar Dados'}
+          {duplicateWarning ? 'Ignorar e Salvar' : 'Confirmar Dados'}
         </button>
       </div>
     </form>
