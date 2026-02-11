@@ -177,7 +177,9 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
             </div>
           }
         >
-          <GanttChart tasks={ganttTasks} />
+          <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            <GanttChart tasks={ganttTasks} />
+          </div>
         </TechnicalFrame>
       </div>
 

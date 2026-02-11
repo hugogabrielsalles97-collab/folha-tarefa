@@ -13,6 +13,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
             return { ganttData: [], domain: [0, 0] };
         }
         
+        // Ordenar por data de início para um fluxo visual lógico
         const sortedTasks = [...tasks].sort((a, b) => new Date(a.plannedStartDate + 'T00:00:00').getTime() - new Date(b.plannedStartDate + 'T00:00:00').getTime());
 
         const allDates = sortedTasks.flatMap(t => [new Date(t.plannedStartDate + 'T00:00:00').getTime(), new Date(t.plannedEndDate + 'T00:00:00').getTime()]);
@@ -29,6 +30,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
             const actualProgressStart = actualStart || plannedStart;
 
             return {
+                id: task.id, // Usamos ID para garantir que cada barra tenha seu próprio espaço no eixo Y
                 name: task.name,
                 plannedRange: [plannedStart, plannedEnd],
                 actualProgressRange: [actualProgressStart, actualProgressStart + progressWidth],
@@ -58,7 +60,14 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
             
             return (
                 <div className="bg-black p-5 border-2 shadow-lg text-sm font-mono" style={{ borderColor: color, boxShadow: `0 0 15px ${color}44` }}>
-                    <p className="font-black mb-3 uppercase tracking-widest border-b-2 border-white/10 pb-3 text-base" style={{ color: color }}>{task.name}</p>
+                    <div className="mb-2">
+                        <span className="text-[10px] text-white/30 uppercase font-black tracking-widest block">
+                            {task.obraDeArte} - {task.discipline}
+                        </span>
+                        <p className="font-black uppercase tracking-widest border-b-2 border-white/10 pb-3 text-base" style={{ color: color }}>
+                            {task.name}
+                        </p>
+                    </div>
                     <p className="text-white/90 mb-2"><span className="text-neon-orange font-black">PREVISTO:</span> {task.plannedStartDate} → {task.plannedEndDate}</p>
                     {task.actualStartDate && <p className="text-white/90 mb-2"><span className="font-black" style={{ color: color }}>EXECUTADO:</span> {task.actualStartDate} → {task.actualEndDate || 'EM CURSO'}</p>}
                     <p className="text-white font-black mt-4 text-2xl flex items-baseline gap-2">
@@ -74,8 +83,11 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
         return <div className="flex items-center justify-center h-full text-white/5 font-black uppercase tracking-[15px]">Cronograma Indisponível</div>;
     }
 
+    // Altura dinâmica: 35px por tarefa + margens. Mínimo de 300px.
+    const dynamicHeight = Math.max(300, ganttData.length * 40 + 60);
+
     return (
-        <div style={{ width: '100%', height: 400 }}>
+        <div style={{ width: '100%', height: dynamicHeight }} className="overflow-visible">
             <ResponsiveContainer>
                 <BarChart data={ganttData} layout="vertical" margin={{ top: 20, right: 40, left: 10, bottom: 20 }}>
                     <XAxis 
@@ -84,14 +96,18 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                         scale="time" 
                         stroke="#2a2a30"
                         tickFormatter={(time) => new Date(time).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} 
-                        tick={{ fill: '#64748b', fontSize: 11, fontWeight: 900 }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }}
                     />
                     <YAxis 
                         type="category" 
-                        dataKey="name" 
+                        dataKey="id" 
                         stroke="#2a2a30"
-                        width={140}
-                        tick={{ fill: '#e2e8f0', fontSize: 11, fontWeight: 'black' }}
+                        width={180}
+                        tickFormatter={(id) => {
+                            const item = ganttData.find(d => d.id === id);
+                            return item ? `${item.task.obraDeArte}: ${item.name}` : '';
+                        }}
+                        tick={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 'black' }}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
                     
@@ -117,16 +133,16 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                         };
 
                         return (
-                            <React.Fragment key={`gantt-entry-${index}`}>
+                            <React.Fragment key={`gantt-entry-${entry.id}`}>
                                 <ReferenceArea
-                                    y1={entry.name} y2={entry.name}
+                                    y1={entry.id} y2={entry.id}
                                     x1={entry.plannedRange[0]} x2={entry.plannedRange[1]}
                                     ifOverflow="visible"
                                     {...plannedAreaProps}
                                 />
                                 {entry.task.progress > 0 &&
                                     <ReferenceArea
-                                        y1={entry.name} y2={entry.name}
+                                        y1={entry.id} y2={entry.id}
                                         x1={entry.actualProgressRange[0]} x2={entry.actualProgressRange[1]}
                                         ifOverflow="visible"
                                         {...actualAreaProps}
