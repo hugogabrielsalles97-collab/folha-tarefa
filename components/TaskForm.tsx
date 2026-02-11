@@ -253,17 +253,22 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 border-t border-dark-border pt-4 mt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest mb-2">Planejamento</p>
+      <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
+          {/* Cronograma Planejado */}
+          <div>
+            <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest mb-2">Cronograma Planejado</p>
+            <div className="grid grid-cols-2 gap-4">
               <InputField label="Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
               <InputField label="Fim" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
             </div>
-            <div>
-              <p className="text-[9px] font-black text-neon-green uppercase tracking-widest mb-2">Execução Real</p>
+          </div>
+
+          {/* Execução Real */}
+          <div>
+            <p className="text-[9px] font-black text-neon-green uppercase tracking-widest mb-2">Execução Real</p>
+            <div className="grid grid-cols-2 gap-4">
               <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
-              <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} />
+              <InputField label="Término Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} />
             </div>
           </div>
       </div>
