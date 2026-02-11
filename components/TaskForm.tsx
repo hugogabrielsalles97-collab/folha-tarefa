@@ -331,34 +331,68 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
         <p className="text-[10px] font-black text-neon-cyan uppercase mb-3 tracking-widest">Registro Fotográfico</p>
-        {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
-            <div className="mb-4">
-                <label htmlFor="photo-upload" className="cursor-pointer bg-dark-bg border border-dark-border text-white/50 text-xs font-bold uppercase p-3 inline-flex items-center gap-2 hover:border-neon-cyan hover:text-neon-cyan transition-colors">
-                    <span>+ Adicionar Foto</span>
-                </label>
-                <input id="photo-upload" type="file" className="hidden" onChange={handleFileUpload} accept="image/*" disabled={isUploading} />
-                {isUploading && <span className="text-neon-cyan text-xs ml-4 animate-pulse">Enviando...</span>}
-            </div>
-        )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {(task.photo_urls || []).map(url => (
-                <div key={url} className="relative group aspect-square">
-                    <img src={url} alt="Registro da tarefa" className="w-full h-full object-cover border-2 border-dark-border"/>
-                    {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
-                        <button 
-                            type="button"
-                            onClick={() => handleDeletePhoto(url)}
-                            className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta"
-                            title="Remover foto"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
+        <input id="photo-upload" type="file" className="hidden" onChange={handleFileUpload} accept="image/*" disabled={isUploading || isViewer} />
+        
+        {(task.photo_urls || []).length === 0 ? (
+            // STATE: NO PHOTOS
+            (isProductionUser || role === 'PLANEJADOR') && !isViewer ? (
+                <label htmlFor="photo-upload" className="flex flex-col items-center justify-center w-full min-h-[200px] border-2 border-dashed border-dark-border hover:border-neon-cyan transition-colors cursor-pointer bg-dark-bg p-4 group">
+                    {isUploading ? (
+                        <div className="text-center">
+                            <svg className="animate-spin h-8 w-8 text-neon-cyan mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="mt-2 text-sm text-white/50 animate-pulse uppercase tracking-widest">Enviando...</p>
+                        </div>
+                    ) : (
+                        <div className="text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-white/20 group-hover:text-neon-cyan transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="mt-2 text-sm text-white/50">
+                                <span className="font-semibold text-neon-cyan">CLIQUE AQUI</span> PARA ADICIONAR
+                            </p>
+                            <p className="text-[9px] text-white/30 uppercase font-black tracking-widest">OU ARRASTE E SOLTE O ARQUIVO</p>
+                        </div>
                     )}
+                </label>
+            ) : (
+                <div className="flex items-center justify-center w-full min-h-[200px] border-2 border-dashed border-dark-border bg-dark-bg p-4">
+                    <p className="text-center text-white/10 text-xs font-black uppercase tracking-widest">Nenhum registro fotográfico.</p>
                 </div>
-            ))}
-        </div>
-        {(task.photo_urls || []).length === 0 && (
-            <p className="text-center text-white/10 text-[9px] font-black uppercase tracking-widest py-4">Nenhum registro fotográfico adicionado.</p>
+            )
+        ) : (
+            // STATE: PHOTOS EXIST
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {(task.photo_urls || []).map(url => (
+                    <div key={url} className="relative group aspect-square">
+                        <img src={url} alt="Registro da tarefa" className="w-full h-full object-cover border-2 border-dark-border"/>
+                        {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+                            <button type="button" onClick={() => handleDeletePhoto(url)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta" title="Remover foto">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        )}
+                    </div>
+                ))}
+                {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+                    <label htmlFor="photo-upload" className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-dark-border hover:border-neon-cyan transition-colors cursor-pointer bg-dark-bg group">
+                        {isUploading ? (
+                            <svg className="animate-spin h-8 w-8 text-neon-cyan" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <div className="text-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-8 w-8 text-white/30 group-hover:text-neon-cyan transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="mt-1 block text-[9px] uppercase font-black text-white/40 group-hover:text-neon-cyan transition-colors">Adicionar</span>
+                            </div>
+                        )}
+                    </label>
+                )}
+            </div>
         )}
       </div>
 
