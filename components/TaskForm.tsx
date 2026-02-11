@@ -268,10 +268,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                 </div>
                 <div>
                     <p className="text-[10px] font-black text-white uppercase tracking-wider">
-                        Alerta de Conflito de Período
+                        Alerta de Conflito de Equipes
                     </p>
                     <p className="text-[9px] text-neon-orange font-bold uppercase">
-                        Detectamos <span className="text-white text-xs">{duplicateWarning.count}</span> registro(s) com esta descrição cujos períodos se sobrepõem ao atual.
+                        detectamos que já possui <span className="text-white text-xs">{duplicateWarning.count}</span> registros de equipes alocadas neste mesmo período.
                     </p>
                 </div>
             </div>
