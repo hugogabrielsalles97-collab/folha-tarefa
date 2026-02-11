@@ -1,12 +1,12 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Task } from './types';
 import { useSupabaseTasks } from './hooks/useSupabaseTasks';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import TaskForm from './components/TaskForm';
 import Login from './components/Login';
-import { AddIcon, WeatherIcon } from './components/icons';
+import { AddIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 
 const App: React.FC = () => {
@@ -14,27 +14,6 @@ const App: React.FC = () => {
   const { tasks, addTask, updateTask, deleteTask, loading, error } = useSupabaseTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [hasApiKey, setHasApiKey] = useState(false);
-
-  // Verifica se a chave de API está configurada no ambiente
-  useEffect(() => {
-    const checkKey = async () => {
-      if (typeof window.aistudio !== 'undefined') {
-        const selected = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(selected || !!process.env.API_KEY);
-      } else {
-        setHasApiKey(!!process.env.API_KEY);
-      }
-    };
-    checkKey();
-  }, []);
-
-  const handleOpenSelectKey = async () => {
-    if (typeof window.aistudio !== 'undefined') {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true); // Assume sucesso após abertura conforme diretrizes
-    }
-  };
 
   const handleOpenModal = useCallback((task: Task | null) => {
     setEditingTask(task);
@@ -85,28 +64,10 @@ const App: React.FC = () => {
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">
               Folha Tarefa <span className="text-neon-cyan text-glow-cyan">Digital</span>
             </h1>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-[10px] font-black text-neon-cyan/60 uppercase tracking-[4px]">Monitoramento Serra das Araras</p>
-              <div className="flex items-center gap-1.5 border-l border-white/10 pl-3">
-                <div className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? 'bg-neon-green shadow-neon-green' : 'bg-neon-red shadow-neon-red'} animate-pulse`}></div>
-                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">
-                  {hasApiKey ? 'Telemetria Ativa' : 'IA Offline'}
-                </span>
-              </div>
-            </div>
+            <p className="text-[12px] font-black text-neon-cyan/60 uppercase tracking-[4px]">Monitoramento Serra das Araras</p>
           </div>
         </div>
-        
         <div className="flex items-center gap-4">
-          {!hasApiKey && (
-            <button
-              onClick={handleOpenSelectKey}
-              className="flex items-center gap-2 bg-neon-red/10 text-neon-red font-bold py-2 px-6 border border-neon-red hover:bg-neon-red hover:text-black transition-all text-xs uppercase tracking-widest"
-            >
-              <WeatherIcon /> Ativar Telemetria
-            </button>
-          )}
-          
           {role === 'PLANEJADOR' && (
             <button
               onClick={() => handleOpenModal(null)}
@@ -116,12 +77,11 @@ const App: React.FC = () => {
               <span className="text-sm uppercase tracking-widest">Nova Tarefa</span>
             </button>
           )}
-          
           <button
             onClick={logout}
             className="text-[11px] font-black text-white/50 hover:text-neon-magenta border border-white/10 px-4 py-2 uppercase tracking-widest transition-colors"
           >
-            Sair
+            Logout
           </button>
         </div>
       </header>
