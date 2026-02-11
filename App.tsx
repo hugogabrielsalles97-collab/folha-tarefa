@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import TaskForm from './components/TaskForm';
 import Login from './components/Login';
+import PhotoViewer from './components/PhotoViewer';
 import { AddIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 
@@ -14,6 +15,29 @@ const App: React.FC = () => {
   const { tasks, addTask, updateTask, deleteTask, loading } = useSupabaseTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [photoViewerState, setPhotoViewerState] = useState({
+    isOpen: false,
+    images: [] as string[],
+    currentIndex: 0,
+  });
+
+  const openPhotoViewer = useCallback((images: string[], startIndex = 0) => {
+    if (images && images.length > 0) {
+      setPhotoViewerState({
+        isOpen: true,
+        images,
+        currentIndex: startIndex,
+      });
+    }
+  }, []);
+
+  const closePhotoViewer = useCallback(() => {
+    setPhotoViewerState(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const navigatePhotoViewer = useCallback((newIndex: number) => {
+    setPhotoViewerState(prev => ({ ...prev, currentIndex: newIndex }));
+  }, []);
 
   const handleOpenModal = useCallback((task: Task | null) => {
     setEditingTask(task);
@@ -94,7 +118,12 @@ const App: React.FC = () => {
       )}
 
       <main>
-        <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
+        <Dashboard 
+          tasks={tasks} 
+          onEditTask={handleOpenModal} 
+          onDeleteTask={handleDeleteTask} 
+          onViewPhotos={openPhotoViewer}
+        />
       </main>
 
       {(role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER') && (
@@ -104,8 +133,18 @@ const App: React.FC = () => {
             onCancel={handleCloseModal} 
             existingTask={editingTask} 
             allTasks={tasks}
+            onViewPhotos={openPhotoViewer}
           />
         </Modal>
+      )}
+
+      {photoViewerState.isOpen && (
+        <PhotoViewer
+          images={photoViewerState.images}
+          currentIndex={photoViewerState.currentIndex}
+          onClose={closePhotoViewer}
+          onNavigate={navigatePhotoViewer}
+        />
       )}
     </div>
   );

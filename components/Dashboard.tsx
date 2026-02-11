@@ -12,6 +12,7 @@ interface DashboardProps {
   tasks: Task[];
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onViewPhotos: (images: string[], startIndex?: number) => void;
 }
 
 const TechnicalFrame: React.FC<{ title: string; children: React.ReactNode; className?: string; headerContent?: React.ReactNode }> = ({ title, children, className = "", headerContent }) => (
@@ -30,7 +31,7 @@ const TechnicalFrame: React.FC<{ title: string; children: React.ReactNode; class
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask, onViewPhotos }) => {
   const [filter, setFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -228,6 +229,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
               onDelete={onDeleteTask}
               onSort={handleSort}
               sortConfig={sortConfig}
+              onViewPhotos={onViewPhotos}
           />
         </div>
       </TechnicalFrame>

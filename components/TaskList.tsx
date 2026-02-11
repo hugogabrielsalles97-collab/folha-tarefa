@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task } from '../types';
-import { EditIcon, DeleteIcon } from './icons';
+import { EditIcon, DeleteIcon, PhotoIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaskListProps {
@@ -10,9 +10,10 @@ interface TaskListProps {
   onDelete: (taskId: string) => void;
   onSort: (key: keyof Task | 'status') => void;
   sortConfig: { key: keyof Task | 'status' | null; direction: 'asc' | 'desc' };
+  onViewPhotos: (images: string[], startIndex?: number) => void;
 }
 
-const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; }> = ({ task, onEdit, onDelete }) => {
+const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; onViewPhotos: (images: string[], startIndex?: number) => void; }> = ({ task, onEdit, onDelete, onViewPhotos }) => {
   const { role } = useAuth();
   // Agora visitantes também veem o botão de "editar", mas ele servirá apenas para ver detalhes.
   const showViewButton = role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER';
@@ -78,8 +79,12 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       {/* QUANTIDADES */}
       <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Quantidades</span>
-        <div><span className="text-neon-orange/80 font-black">P: </span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</div>
-        <div><span className="text-neon-green/80 font-black">R: </span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</div>
+        <div className="grid grid-cols-[15px_1fr] gap-x-2 text-left max-w-max mx-auto">
+            <span className="text-neon-orange/80 font-black">P:</span>
+            <span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
+            <span className="text-neon-green/80 font-black">R:</span>
+            <span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
+        </div>
       </div>
       
       {/* STATUS */}
@@ -102,6 +107,11 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       {/* AÇÕES - Visíveis e acessíveis no mobile */}
       {showViewButton && (
         <div className="col-span-3 md:col-span-1 flex justify-end gap-2 print:hidden">
+          {task.photo_urls && task.photo_urls.length > 0 && (
+            <button onClick={() => onViewPhotos(task.photo_urls, 0)} title="Visualizar Fotos" className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-cyan hover:border-neon-cyan transition-all active:scale-90">
+                <PhotoIcon />
+            </button>
+          )}
           <button onClick={() => onEdit(task)} title={role === 'VIEWER' ? "Visualizar" : "Editar"} className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all active:scale-90">
             <EditIcon />
           </button>
@@ -136,7 +146,7 @@ const SortableHeader: React.FC<{
     );
 };
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, sortConfig }) => {
+const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, sortConfig, onViewPhotos }) => {
   const { role } = useAuth();
   const showActionsHeader = role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER';
 
@@ -161,7 +171,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
             {/* Lista de Itens */}
             <div className="divide-y divide-white/[0.03] print:divide-black">
                 {tasks.map(task => (
-                    <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
+                    <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onViewPhotos={onViewPhotos} />
                 ))}
             </div>
         </div>
