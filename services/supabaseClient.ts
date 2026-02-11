@@ -2,8 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Discipline, TaskLevel } from '../types';
 
-// Definimos uma interface que reflete apenas as colunas REAIS do banco de dados
-// Isso evita que o SDK tente enviar campos que não existem no schema cache
 export interface DBTask {
   id: string;
   created_at?: string;
@@ -19,8 +17,8 @@ export interface DBTask {
   plannedEndDate: string;
   actualStartDate?: string;
   actualEndDate?: string;
+  // Campos plannedQuantity, actualQuantity e quantityUnit omitidos para compatibilidade com o schema atual.
   progress: number;
-  // Nota: observations, plannedWeather e actualWeather estão ausentes no DB atual
 }
 
 export interface Database {

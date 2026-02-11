@@ -42,7 +42,7 @@ export interface Task {
   plannedEndDate: string; // YYYY-MM-DD
   actualStartDate?: string; // YYYY-MM-DD
   actualEndDate?: string; // YYYY-MM-DD
-  
+
   plannedWeather?: string;
   actualWeather?: string;
   

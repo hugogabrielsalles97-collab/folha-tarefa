@@ -3,12 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, DBTask } from '../services/supabaseClient';
 import { Task } from '../types';
 
-/**
- * Filtra o objeto Task para enviar apenas colunas que existem no banco de dados.
- * Isso evita o erro "Could not find the 'column_name' in the schema cache".
- */
 const filterTaskForDB = (task: Partial<Task>): any => {
-    // Lista de campos que sabemos que existem na tabela 'tasks'
+    // Definimos apenas as chaves que existem comprovadamente no banco de dados.
+    // 'plannedQuantity', 'actualQuantity' e 'quantityUnit' foram removidos para cessar o erro de PostgREST.
     const allowedKeys: (keyof DBTask)[] = [
         'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
@@ -20,8 +17,11 @@ const filterTaskForDB = (task: Partial<Task>): any => {
     allowedKeys.forEach(key => {
         if (key in task) {
             const value = (task as any)[key];
-            // Converte strings vazias para null (padrão Postgres para datas/opcionais)
-            sanitized[key] = value === '' ? null : value;
+            if (['progress'].includes(key as string)) {
+                sanitized[key] = value === '' || value === null || value === undefined ? 0 : Number(value);
+            } else {
+                sanitized[key] = value === '' ? null : value;
+            }
         }
     });
 
@@ -42,7 +42,6 @@ export function useSupabaseTasks() {
         .order('plannedStartDate', { ascending: true });
 
       if (fetchError) throw fetchError;
-      // O data retornado aqui pode ser convertido para Task[]
       if (data) setTasks(data as unknown as Task[]);
     } catch (e: any) {
       console.error('Fetch Error:', e);

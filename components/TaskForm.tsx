@@ -11,22 +11,24 @@ interface TaskFormProps {
   allTasks: Task[];
 }
 
-const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder, errorType }: { label: string, name: string, value?: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string, errorType?: 'default' | 'critical' }) => {
+const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder, errorType, min, max }: { label: string, name: string, value?: any, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string, errorType?: 'default' | 'critical', min?: string | number, max?: string | number }) => {
     return (
-        <div className="mb-3">
-          <label htmlFor={name} className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">{label}</label>
+        <div className="mb-1.5">
+          <label htmlFor={name} className="block text-[9px] font-black text-neon-cyan uppercase tracking-widest mb-0.5">{label}</label>
           <input 
             type={type} 
             id={name} 
             name={name} 
-            value={value || ''} 
+            value={value ?? ''} 
             onChange={onChange} 
             disabled={disabled}
             placeholder={placeholder}
-            className={`w-full border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`} 
+            min={min}
+            max={max}
+            className={`w-full border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 font-mono text-xs focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`} 
           />
           {error && (
-            <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink shadow-neon-orange' : 'text-neon-magenta'} text-[8px] mt-1 font-black uppercase tracking-widest`}>
+            <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink' : 'text-neon-magenta'} text-[8px] mt-0.5 font-black uppercase tracking-widest`}>
               {error}
             </p>
           )}
@@ -34,38 +36,21 @@ const InputField = ({ label, name, value, onChange, type = 'text', error, disabl
     );
 };
 
-const TextareaField = ({ label, name, value, onChange, error, disabled, placeholder }: { label: string, name: string, value?: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, error?: string, disabled?: boolean, placeholder?: string }) => (
-    <div className="mb-3">
-      <label htmlFor={name} className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">{label}</label>
-      <textarea 
-        id={name} 
-        name={name} 
-        value={value || ''} 
-        onChange={onChange} 
-        disabled={disabled} 
-        placeholder={placeholder}
-        rows={3}
-        className={`w-full bg-dark-bg border ${error ? 'border-neon-magenta' : 'border-dark-border'} p-2 text-white font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors placeholder:text-white/10 resize-none`} 
-      />
-      {error && <p className="text-neon-magenta text-[8px] mt-1 font-black uppercase tracking-widest">{error}</p>}
-    </div>
-);
-
 const SelectField = ({ label, name, value, onChange, children, error, disabled, errorType }: { label: string, name: string, value: any, onChange: (e: React.ChangeEvent<any>) => void, children?: React.ReactNode, error?: string, disabled?: boolean, errorType?: 'default' | 'critical' }) => (
-     <div className="mb-3">
-      <label htmlFor={name} className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">{label}</label>
+     <div className="mb-1.5">
+      <label htmlFor={name} className="block text-[9px] font-black text-neon-cyan uppercase tracking-widest mb-0.5">{label}</label>
       <select 
         id={name} 
         name={name} 
         value={value || ''} 
         onChange={onChange} 
         disabled={disabled} 
-        className={`w-full bg-dark-bg border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 text-white font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 appearance-none transition-colors`}
+        className={`w-full bg-dark-bg border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 text-white font-mono text-xs focus:outline-none focus:border-neon-cyan disabled:opacity-30 appearance-none transition-colors`}
       >
           {children}
       </select>
       {error && (
-        <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink shadow-neon-orange' : 'text-neon-magenta'} text-[8px] mt-1 font-black uppercase tracking-widest`}>
+        <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink' : 'text-neon-magenta'} text-[8px] mt-0.5 font-black uppercase tracking-widest`}>
           {error}
         </p>
       )}
@@ -77,7 +62,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const isProductionUser = role === 'PRODUÇÃO';
   const isViewer = role === 'VIEWER';
 
-  const [task, setTask] = useState<Omit<Task, 'id' | 'progress'> & { id?: string, progress?: number }>({
+  const [task, setTask] = useState<Omit<Task, 'id'>>({
     name: '',
     discipline: Discipline.OAE,
     level: '',
@@ -95,7 +80,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [errorType, setErrorType] = useState<'default' | 'critical'>('default');
   const [showConflictWarning, setShowConflictWarning] = useState(false);
   const [conflictCount, setConflictCount] = useState(0);
 
@@ -108,8 +92,26 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     if (isViewer) return;
     const { name, value } = e.target;
+    
+    // Regra Crítica: Não permite avançar progresso se não houver data de início real
+    if (name === 'progress' && !task.actualStartDate) {
+        setErrors(prev => ({ ...prev, progress: 'Defina o Início Real primeiro.' }));
+        return;
+    }
+
     setTask(prev => {
-        const updated = { ...prev, [name]: value };
+        let val: any = value;
+        if (name === 'progress') {
+            val = Math.min(100, Math.max(0, Number(value) || 0));
+        }
+
+        const updated = { ...prev, [name]: val };
+        
+        // Se limpar a data de início real, o progresso deve voltar a 0
+        if (name === 'actualStartDate' && !value) {
+            updated.progress = 0;
+        }
+
         if (name === 'discipline') {
             updated.level = '';
             updated.name = '';
@@ -120,16 +122,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             updated.corte = '';
         }
         if (name === 'level' && updated.discipline === Discipline.OAE) {
-            if (value !== OAELevel.SUPERESTRUTURA) {
-                updated.vao = '';
-            }
-            if (value !== OAELevel.FUNDACOES && value !== OAELevel.MESOESTRUTURA) {
-                updated.apoio = '';
-            }
+            if (value !== OAELevel.SUPERESTRUTURA) updated.vao = '';
+            if (value !== OAELevel.FUNDACOES && value !== OAELevel.MESOESTRUTURA) updated.apoio = '';
         }
         return updated;
     });
-    // Limpar avisos ao editar campos relevantes
+
     setShowConflictWarning(false);
     if (errors[name]) {
         setErrors(prev => {
@@ -142,24 +140,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
   const getConflictingTasksCount = useMemo(() => {
     if (!task.name || !task.plannedStartDate || !task.plannedEndDate) return 0;
-    
     return allTasks.filter(t => {
         if (existingTask && t.id === existingTask.id) return false;
-
-        // Compara apenas o NOME da atividade (independente de localização)
         const sameName = t.name.trim().toLowerCase() === task.name.trim().toLowerCase();
-        
-        const tStart = t.plannedStartDate;
-        const tEnd = t.plannedEndDate;
-        const taskStart = task.plannedStartDate;
-        const taskEnd = task.plannedEndDate;
-
-        // Intervalo de sobreposição: (Início A <= Fim B) E (Início B <= Fim A)
-        const overlap = (taskStart <= tEnd) && (tStart <= taskEnd);
-
+        const overlap = (task.plannedStartDate <= t.plannedEndDate) && (t.plannedStartDate <= task.plannedEndDate);
         return sameName && overlap;
     }).length;
-  }, [task, allTasks, existingTask]);
+  }, [task.name, task.plannedStartDate, task.plannedEndDate, allTasks, existingTask]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -168,22 +155,22 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     if (!task.plannedStartDate) newErrors.plannedStartDate = 'Obrigatório.';
     if (!task.plannedEndDate) newErrors.plannedEndDate = 'Obrigatório.';
     
+    if (task.progress > 0 && !task.actualStartDate) {
+        newErrors.progress = 'Início Real é obrigatório para registrar progresso.';
+    }
+
     if (task.actualEndDate && (task.progress || 0) < 100) {
         newErrors.actualEndDate = 'Avanço deve ser 100% para registrar término.';
     }
-
     setErrors(newErrors);
-    setErrorType('default');
     return Object.keys(newErrors).length === 0;
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewer) return;
-    
     if (!validate()) return;
 
-    // Verificação de conflito se não foi confirmado ainda
     if (!showConflictWarning && getConflictingTasksCount > 0) {
         setConflictCount(getConflictingTasksCount);
         setShowConflictWarning(true);
@@ -192,76 +179,51 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
     const taskToSave: Task = {
       id: existingTask?.id || crypto.randomUUID(),
-      progress: task.progress || 0,
       ...task,
     } as Task;
     onSave(taskToSave);
   };
-  
-  const levelsForDiscipline = DISCIPLINE_LEVELS[task.discipline] || [];
-  const oaeTaskOptions = (task.discipline === Discipline.OAE && task.level) ? OAE_TASK_NAMES_BY_LEVEL[task.level] : null;
-  
-  const isOAE = task.discipline === Discipline.OAE;
-  const isOAESuper = isOAE && task.level === OAELevel.SUPERESTRUTURA;
-  const isOAEFundOrMeso = isOAE && (task.level === OAELevel.FUNDACOES || task.level === OAELevel.MESOESTRUTURA);
 
-  const getProgressStyles = () => {
-    const progress = task.progress || 0;
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const plannedEndDate = task.plannedEndDate ? new Date(task.plannedEndDate + 'T00:00:00') : null;
+  const progressColor = useMemo(() => {
+    const p = task.progress || 0;
+    if (p === 100) return '#39ff14';
+    if (p === 0) return '#ff8c00';
+    return '#00f3ff';
+  }, [task.progress]);
 
-    let color = '#00f3ff'; 
-
-    if (progress === 100) {
-      color = '#39ff14'; 
-    } else if (plannedEndDate && today > plannedEndDate) {
-      color = '#ff3131'; 
-    } else if (progress === 0) {
-      color = '#ff8c00'; 
-    }
-
-    return {
-      background: `linear-gradient(to right, ${color} 0%, ${color} ${progress}%, #0a0a0c ${progress}%, #0a0a0c 100%)`,
-      color
-    };
-  };
-
-  const progressStyle = getProgressStyles();
+  const showApoio = task.discipline === Discipline.OAE && (task.level === OAELevel.FUNDACOES || task.level === OAELevel.MESOESTRUTURA);
+  const showVao = task.discipline === Discipline.OAE && task.level === OAELevel.SUPERESTRUTURA;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
-      <h2 className="text-lg font-black text-white uppercase tracking-[4px] border-b border-dark-border pb-2 mb-4">
-        {isViewer ? 'Detalhes' : 'Registro de'} <span className="text-neon-orange">Tarefa</span>
+    <form onSubmit={handleSubmit} className="space-y-3 max-h-[85vh] overflow-y-auto pr-1 custom-scrollbar">
+      <h2 className="text-base font-black text-white uppercase tracking-[3px] border-b border-dark-border pb-1.5 mb-2">
+        {isViewer ? 'DETALHES DA' : 'REGISTRAR'} <span className="text-neon-orange">TAREFA</span>
       </h2>
       
       <div className="grid grid-cols-2 gap-3">
         <SelectField label="Disciplina" name="discipline" value={task.discipline} onChange={handleChange} disabled={isProductionUser || isViewer}>
-            {Object.values(Discipline).map(d => <option key={d} value={d} className="bg-dark-surface text-white">{d}</option>)}
+            {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
         </SelectField>
-        
         <SelectField label="Nível Operacional" name="level" value={task.level} onChange={handleChange} error={errors.level} disabled={isProductionUser || isViewer}>
-            <option value="" className="bg-dark-surface text-white">Selecionar</option>
-            {levelsForDiscipline.map(l => <option key={l} value={l} className="bg-dark-surface text-white">{l}</option>)}
+            <option value="">Selecionar</option>
+            {(DISCIPLINE_LEVELS[task.discipline] || []).map(l => <option key={l} value={l}>{l}</option>)}
         </SelectField>
       </div>
 
       <div className="bg-white/5 p-3 border border-dark-border">
-        {isOAE ? (
-            <div className="grid grid-cols-2 gap-2">
+        {task.discipline === Discipline.OAE ? (
+            <div className={`grid ${showApoio || showVao ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                 <SelectField label="OAE" name="obraDeArte" value={task.obraDeArte} onChange={handleChange} disabled={isProductionUser || isViewer}>
                     <option value="">---</option>
                     {OBRAS_DE_ARTE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                 </SelectField>
-                
-                {isOAEFundOrMeso && (
+                {showApoio && (
                     <SelectField label="Apoio" name="apoio" value={task.apoio} onChange={handleChange} disabled={isProductionUser || isViewer}>
                         <option value="">---</option>
                         {APOIOS_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                     </SelectField>
                 )}
-
-                {isOAESuper && (
+                {showVao && (
                     <SelectField label="Vão" name="vao" value={task.vao} onChange={handleChange} disabled={isProductionUser || isViewer}>
                         <option value="">---</option>
                         {VAOS_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
@@ -269,108 +231,95 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                 )}
             </div>
         ) : (
-            <div className="grid grid-cols-2 gap-2">
-                <InputField label="Frente" name="frente" value={task.frente} onChange={handleChange} disabled={isProductionUser || isViewer} placeholder="Ex: KM 12+500" />
-                <InputField label="Corte" name="corte" value={task.corte} onChange={handleChange} disabled={isProductionUser || isViewer} placeholder="Ex: C-01" />
+            <div className="grid grid-cols-2 gap-3">
+                <InputField label="Frente" name="frente" value={task.frente} onChange={handleChange} disabled={isProductionUser || isViewer} />
+                <InputField label="Corte" name="corte" value={task.corte} onChange={handleChange} disabled={isProductionUser || isViewer} />
             </div>
         )}
       </div>
 
-      {oaeTaskOptions ? (
-          <SelectField 
-            label="Descrição Atividade" 
-            name="name" 
-            value={task.name} 
-            onChange={handleChange} 
-            error={errors.name} 
-            errorType={errorType}
-            disabled={isProductionUser || isViewer}
-          >
-              <option value="">Selecione a tarefa técnica</option>
-              {oaeTaskOptions.map(t => <option key={t} value={t}>{t}</option>)}
-          </SelectField>
-      ) : (
-          <InputField 
-              label="Descrição Atividade" 
-              name="name" 
-              value={task.name} 
-              onChange={handleChange} 
-              error={errors.name} 
-              errorType={errorType}
-              disabled={isProductionUser || isViewer}
-              placeholder="Digite a atividade..."
-          />
-      )}
-
-      <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
-          <div className="bg-white/[0.02] p-3 border-l-2 border-neon-orange">
-            <div className="flex justify-between items-center mb-2">
-                <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest">Cronograma Planejado</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
-              <InputField label="Fim" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
-            </div>
-          </div>
-
-          <div className="bg-white/[0.02] p-3 border-l-2 border-neon-green">
-            <div className="flex justify-between items-center mb-2">
-                <p className="text-[9px] font-black text-neon-green uppercase tracking-widest">Execução Real</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
-              <InputField label="Término Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-2">
+          {OAE_TASK_NAMES_BY_LEVEL[task.level] ? (
+              <SelectField label="Descrição da Tarefa" name="name" value={task.name} onChange={handleChange} error={errors.name} disabled={isProductionUser || isViewer}>
+                  <option value="">Selecione a tarefa...</option>
+                  {OAE_TASK_NAMES_BY_LEVEL[task.level].map(t => <option key={t} value={t}>{t}</option>)}
+              </SelectField>
+          ) : (
+              <InputField label="Descrição da Tarefa" name="name" value={task.name} onChange={handleChange} error={errors.name} disabled={isProductionUser || isViewer} placeholder="Descreva a atividade..." />
+          )}
       </div>
 
-      <div className="border-t border-dark-border pt-4">
-          <label 
-            className="text-[9px] font-black uppercase tracking-widest mb-1 block transition-colors duration-300"
-            style={{ color: progressStyle.color }}
-          >
-            Avanço Físico: {task.progress}%
-          </label>
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            value={task.progress || 0} 
-            onChange={(e) => setTask(prev => ({...prev, progress: Number(e.target.value)}))} 
-            disabled={isViewer} 
-            className="w-full h-1 appearance-none cursor-pointer rounded-full outline-none transition-all duration-300 border border-dark-border/50" 
-            style={{
-              background: progressStyle.background
-            }}
-          />
+      <div className="bg-white/[0.03] p-3 border-l-4 border-neon-orange">
+        <p className="text-[10px] font-black text-neon-orange uppercase mb-3 tracking-widest">Cronograma Planejado</p>
+        <div className="grid grid-cols-2 gap-2">
+            <InputField label="Data Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
+            <InputField label="Data Término" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
+        </div>
       </div>
 
-      <TextareaField label="Observações" name="observations" value={task.observations} onChange={handleChange} disabled={isViewer} placeholder="Notas de campo..." />
+      <div className="bg-white/[0.03] p-3 border-l-4 border-neon-green">
+        <p className="text-[10px] font-black text-neon-green uppercase mb-3 tracking-widest">Execução em Campo</p>
+        <div className="grid grid-cols-2 gap-2">
+            <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
+            <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
+        </div>
+      </div>
 
-      {/* Alerta de Conflito de Equipes */}
-      {showConflictWarning && (
-          <div className="border-2 border-neon-orange bg-dark-bg p-4 shadow-neon-orange animate-fast-blink my-4 relative">
-              <div className="flex items-center gap-3 mb-2">
-                  <div className="w-2 h-2 bg-neon-orange rounded-full animate-pulse"></div>
-                  <h4 className="text-neon-orange font-black uppercase text-[10px] tracking-widest">Alerta de Conflito de Equipes</h4>
-              </div>
-              <p className="text-white text-[9px] uppercase font-bold tracking-tight leading-relaxed">
-                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas para a tarefa <span className="text-neon-orange underline">{task.name.toUpperCase()}</span> neste mesmo período.
+      <div className={`pt-2 transition-opacity ${!task.actualStartDate ? 'opacity-40' : 'opacity-100'}`}>
+          <div className="flex justify-between items-end mb-1">
+            <label className="text-[9px] font-black text-neon-cyan uppercase tracking-widest">Avanço Físico</label>
+            <span className="text-[14px] font-mono font-black text-white bg-dark-bg px-2 border border-dark-border" style={{ color: !task.actualStartDate ? '#666' : progressColor }}>
+                {task.progress}%
+            </span>
+          </div>
+          <div className={`relative h-4 bg-dark-bg border ${errors.progress ? 'border-neon-magenta shadow-neon-magenta' : 'border-dark-border'} group overflow-hidden`}>
+            {/* Barra de Progresso Visual */}
+            <div 
+                className="absolute top-0 left-0 h-full"
+                style={{ 
+                    width: `${task.progress}%`, 
+                    background: !task.actualStartDate ? '#333' : progressColor,
+                    boxShadow: task.actualStartDate ? `0 0 15px ${progressColor}88` : 'none'
+                }}
+            />
+            {/* Input Range Invisível (Overlay) */}
+            <input 
+                type="range"
+                name="progress"
+                min="0"
+                max="100"
+                step="1"
+                value={task.progress}
+                onChange={handleChange}
+                disabled={isViewer || !task.actualStartDate}
+                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+            />
+          </div>
+          {errors.progress ? (
+              <p className="text-neon-magenta text-[8px] mt-1 font-black uppercase tracking-widest animate-pulse">{errors.progress}</p>
+          ) : (
+              <p className="text-[7px] text-white/30 uppercase font-black mt-1 tracking-tighter">
+                {!task.actualStartDate 
+                    ? 'BLOQUEADO: Defina a data de início real para habilitar o registro de avanço' 
+                    : 'Arraste para atualizar o status de execução técnica em tempo real'}
               </p>
-              <div className="mt-4 flex flex-col gap-2">
-                  <p className="text-white/40 text-[8px] uppercase font-black">Confirma a criação deste registro múltiplo?</p>
-              </div>
+          )}
+      </div>
+
+      {showConflictWarning && (
+          <div className="border-2 border-neon-orange bg-dark-bg p-3 shadow-neon-orange animate-fast-blink my-2">
+              <h4 className="text-neon-orange font-black uppercase text-[10px] tracking-widest mb-1">Alerta de Conflito de Equipe ({conflictCount})</h4>
+              <p className="text-white text-[9px] uppercase font-bold leading-tight">
+                  Detectamos que já possui {conflictCount} registros de equipe de <span className="text-neon-orange">{task.name.toUpperCase()}</span> alocadas neste período.
+              </p>
           </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-6 border-t border-dark-border">
-        <button type="button" onClick={onCancel} className="text-white/30 font-black text-[9px] uppercase tracking-widest hover:text-white">{isViewer ? 'Fechar' : 'Cancelar'}</button>
+      <div className="flex justify-end gap-3 pt-3 border-t border-dark-border">
+        <button type="button" onClick={onCancel} className="text-white/40 font-black text-[10px] uppercase tracking-widest px-4 py-2 hover:text-white transition-colors">{isViewer ? 'FECHAR' : 'CANCELAR'}</button>
         {!isViewer && (
-            <button 
-                type="submit" 
-                className={`${showConflictWarning ? 'bg-neon-orange shadow-neon-orange text-black' : 'bg-neon-cyan shadow-neon-cyan text-black'} font-black py-2 px-10 uppercase text-[10px] tracking-widest hover:bg-white transition-all`}
-            >
-              {showConflictWarning ? 'Confirmar e Salvar' : 'Salvar Registro'}
+            <button type="submit" className={`${showConflictWarning ? 'bg-neon-orange shadow-neon-orange' : 'bg-neon-cyan shadow-neon-cyan'} text-black font-black py-2.5 px-8 uppercase text-[10px] tracking-widest hover:bg-white transition-all`}>
+              {showConflictWarning ? 'CONFIRMAR REGISTRO' : 'SALVAR REGISTRO'}
             </button>
         )}
       </div>
