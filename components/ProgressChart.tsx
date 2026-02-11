@@ -41,14 +41,24 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ tasks }) => {
   }, [tasks]);
 
   return (
-    <div style={{ width: '100%', height: 250 }}>
+    <div style={{ width: '100%', height: 400 }}>
         {tasks.length > 0 ? (
             <ResponsiveContainer>
-                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <BarChart 
+                  data={chartData} 
+                  layout="vertical" 
+                  margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                >
                 <XAxis type="number" domain={[0, 100]} stroke="#2a2a30" tick={{ fill: '#475569', fontSize: 10 }} />
-                <YAxis type="category" dataKey="name" stroke="#2a2a30" width={100} tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 'bold' }} />
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  stroke="#2a2a30" 
+                  width={140} 
+                  tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 'bold' }} 
+                />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                <Bar dataKey="progress" barSize={12} radius={[0, 4, 4, 0]}>
+                <Bar dataKey="progress" barSize={30} radius={[0, 4, 4, 0]}>
                     {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} fillOpacity={0.8} />
                     ))}

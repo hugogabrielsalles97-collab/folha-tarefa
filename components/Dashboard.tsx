@@ -40,6 +40,11 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
   const [ganttOAEFilter, setGanttOAEFilter] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Task | 'status'; direction: 'asc' | 'desc' }>({ key: 'plannedStartDate', direction: 'asc' });
 
+  // Consolidação de todos os níveis possíveis para o filtro
+  const allAvailableLevels = useMemo(() => {
+    return Array.from(new Set(Object.values(DISCIPLINE_LEVELS).flat()));
+  }, []);
+
   const { filteredTasks, stats } = useMemo(() => {
     const filtered = tasks.filter(task => {
       const nameMatch = task.name.toLowerCase().includes(filter.toLowerCase());
@@ -161,7 +166,6 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
           className="lg:col-span-2"
           headerContent={
             <div className="flex flex-col items-end">
-              <label className="text-[10px] font-black text-neon-orange uppercase tracking-widest mb-1">Seletor de OAE</label>
               <select
                 id="ganttOAEFilter"
                 value={ganttOAEFilter}
@@ -197,10 +201,14 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
               </div>
             </div>
             <div className="flex flex-col">
-              <label className="text-[10px] font-black uppercase text-white/40 mb-1">Disciplina</label>
-              <select value={disciplineFilter} onChange={handleDisciplineChange} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan uppercase font-bold h-[34px]">
-                  <option value="">TODAS</option>
-                  {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
+              <span className="text-[7px] font-black text-neon-cyan uppercase tracking-tighter mb-0.5">Nível</span>
+              <select 
+                value={levelFilter} 
+                onChange={e => setLevelFilter(e.target.value)} 
+                className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan uppercase font-bold h-[34px] min-w-[140px]"
+              >
+                  <option value="">TODOS OS NÍVEIS</option>
+                  {allAvailableLevels.map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
               </select>
             </div>
             <button

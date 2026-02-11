@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Task, Discipline, TaskLevel } from '../types';
-import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS } from '../constants';
+import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaskFormProps {
@@ -91,6 +91,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
             newState.level = '';
             newState.name = '';
         }
+        if(name === 'level' && prev.discipline === Discipline.OAE) {
+            newState.name = '';
+        }
         return newState;
     });
 
@@ -132,6 +135,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
   };
   
   const levelsForDiscipline = DISCIPLINE_LEVELS[task.discipline] || [];
+  const selectableTaskNames = task.discipline === Discipline.OAE && task.level ? OAE_TASK_NAMES_BY_LEVEL[task.level] : null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -175,15 +179,22 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask }) =
           </div>
       )}
 
-      <InputField 
-        label="Descrição Atividade" 
-        name="name" 
-        value={task.name} 
-        onChange={handleChange} 
-        error={errors.name} 
-        disabled={isProductionUser}
-        placeholder="Descrever atividade técnica..."
-      />
+      {selectableTaskNames ? (
+        <SelectField label="Descrição Atividade" name="name" value={task.name || ''} onChange={handleChange} error={errors.name} disabled={isProductionUser}>
+            <option value="" className="bg-dark-surface text-white">Selecionar Atividade</option>
+            {selectableTaskNames.map(name => <option key={name} value={name} className="bg-dark-surface text-white">{name}</option>)}
+        </SelectField>
+      ) : (
+        <InputField 
+            label="Descrição Atividade" 
+            name="name" 
+            value={task.name} 
+            onChange={handleChange} 
+            error={errors.name} 
+            disabled={isProductionUser}
+            placeholder="Descrever atividade..."
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-6 border-t border-dark-border pt-6 mt-4">
           <div>
