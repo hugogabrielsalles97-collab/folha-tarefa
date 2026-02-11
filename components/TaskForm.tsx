@@ -146,23 +146,18 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     return allTasks.filter(t => {
         if (existingTask && t.id === existingTask.id) return false;
 
+        // Compara apenas o NOME da atividade (independente de localização)
         const sameName = t.name.trim().toLowerCase() === task.name.trim().toLowerCase();
-        let sameLocation = false;
-        if (task.discipline === Discipline.OAE) {
-            sameLocation = t.obraDeArte === task.obraDeArte && t.apoio === task.apoio && t.vao === task.vao;
-        } else {
-            sameLocation = t.frente === task.frente && t.corte === task.corte;
-        }
-
+        
         const tStart = t.plannedStartDate;
         const tEnd = t.plannedEndDate;
         const taskStart = task.plannedStartDate;
         const taskEnd = task.plannedEndDate;
 
-        // Intervalo de sobreposição
+        // Intervalo de sobreposição: (Início A <= Fim B) E (Início B <= Fim A)
         const overlap = (taskStart <= tEnd) && (tStart <= taskEnd);
 
-        return sameName && sameLocation && overlap;
+        return sameName && overlap;
     }).length;
   }, [task, allTasks, existingTask]);
 
@@ -186,14 +181,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     e.preventDefault();
     if (isViewer) return;
     
-    // 1. Validação básica (campos vazios, etc)
     if (!validate()) return;
 
-    // 2. Verificação de conflito se não foi confirmado ainda
+    // Verificação de conflito se não foi confirmado ainda
     if (!showConflictWarning && getConflictingTasksCount > 0) {
         setConflictCount(getConflictingTasksCount);
         setShowConflictWarning(true);
-        // Scroll para o aviso
         return;
     }
 
@@ -354,17 +347,19 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
       <TextareaField label="Observações" name="observations" value={task.observations} onChange={handleChange} disabled={isViewer} placeholder="Notas de campo..." />
 
-      {/* Alerta de Conflito */}
+      {/* Alerta de Conflito de Equipes */}
       {showConflictWarning && (
-          <div className="border-2 border-neon-orange bg-dark-bg p-4 shadow-neon-orange animate-fast-blink my-4">
+          <div className="border-2 border-neon-orange bg-dark-bg p-4 shadow-neon-orange animate-fast-blink my-4 relative">
               <div className="flex items-center gap-3 mb-2">
-                  <div className="w-2 h-2 bg-neon-orange rounded-full"></div>
+                  <div className="w-2 h-2 bg-neon-orange rounded-full animate-pulse"></div>
                   <h4 className="text-neon-orange font-black uppercase text-[10px] tracking-widest">Alerta de Conflito de Equipes</h4>
               </div>
               <p className="text-white text-[9px] uppercase font-bold tracking-tight leading-relaxed">
-                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas neste mesmo período para esta atividade e local.
+                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas neste mesmo período.
               </p>
-              <p className="text-white/40 text-[8px] uppercase font-black mt-2">Deseja prosseguir com o registro múltiplo?</p>
+              <div className="mt-4 flex flex-col gap-2">
+                  <p className="text-white/40 text-[8px] uppercase font-black">Confirma a criação deste registro múltiplo?</p>
+              </div>
           </div>
       )}
 
