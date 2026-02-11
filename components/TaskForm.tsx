@@ -73,7 +73,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   });
   
   const [loadingWeather, setLoadingWeather] = useState<'planned' | 'actual' | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [weatherSources, setWeatherSources] = useState<{ planned: any[], actual: any[] }>({ planned: [], actual: [] });
 
   useEffect(() => {
     if (existingTask) {
@@ -86,33 +86,46 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     const endDate = type === 'planned' ? task.plannedEndDate : task.actualEndDate;
 
     if (!startDate || !endDate) {
-      alert("Defina o período (Início e Fim) antes de consultar o clima.");
+      alert("Defina o período completo (Início e Fim) antes de consultar o clima.");
       return;
     }
 
     setLoadingWeather(type);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Como um consultor de meteorologia para engenharia civil, forneça um resumo técnico do clima para a região da Serra das Araras, RJ (Piraí/Paracambi). 
-      Período: de ${startDate} até ${endDate}. 
-      Tarefa sendo executada: ${task.name} na disciplina de ${task.discipline}.
-      Se as datas forem passadas, relate o histórico real. Se forem futuras, dê a previsão. 
-      Foque em: Pluviometria (chuva), janelas de trabalho e riscos para ${task.discipline}. Seja conciso (máximo 3 frases).`;
+      const prompt = `Aja como um engenheiro de planejamento especialista em meteorologia. 
+      Forneça um resumo técnico do clima EXCLUSIVAMENTE para a localização de Paracambi-RJ. 
+      Período solicitado: de ${startDate} até ${endDate}. 
+      Tarefa de campo: "${task.name}" na disciplina de "${task.discipline}".
+      
+      Instruções:
+      1. Se o período for FUTURO, forneça a previsão de chuvas e temperaturas.
+      2. Se o período for PASSADO, forneça o histórico meteorológico real verificado.
+      3. Indique janelas de trabalho favoráveis ou riscos de paralisação por chuva (pluviometria) para atividades de ${task.discipline}.
+      Seja técnico e conciso (máximo de 250 caracteres).`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
-        config: { tools: [{ googleSearch: {} }] }
+        config: { 
+          tools: [{ googleSearch: {} }] 
+        }
       });
 
-      const weatherText = response.text || "Dados meteorológicos indisponíveis no momento.";
+      const weatherText = response.text || "Dados meteorológicos indisponíveis para este período em Paracambi-RJ.";
+      const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
       setTask(prev => ({ 
         ...prev, 
         [type === 'planned' ? 'plannedWeather' : 'actualWeather']: weatherText 
       }));
+      setWeatherSources(prev => ({
+        ...prev,
+        [type]: sources
+      }));
     } catch (error) {
-      console.error("Erro ao buscar clima:", error);
-      alert("Falha na telemetria meteorológica.");
+      console.error("Erro na API Gemini:", error);
+      alert("Falha técnica ao acessar serviços meteorológicos de Paracambi. Verifique sua conexão ou tente novamente.");
     } finally {
       setLoadingWeather(null);
     }
@@ -136,57 +149,82 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     onSave(taskToSave);
   };
 
+  const renderSources = (sources: any[]) => {
+    if (!sources || sources.length === 0) return null;
+    return (
+      <div className="mt-1 flex flex-wrap gap-2">
+        <span className="text-[7px] font-black text-white/30 uppercase">Fontes:</span>
+        {sources.map((chunk, idx) => (
+          chunk.web && (
+            <a 
+              key={idx} 
+              href={chunk.web.uri} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[7px] text-neon-cyan hover:underline truncate max-w-[150px]"
+            >
+              {chunk.web.title || 'Referência'}
+            </a>
+          )
+        ))}
+      </div>
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-      <h2 className="text-lg font-black text-white uppercase tracking-[4px] border-b border-dark-border pb-2 mb-4 sticky top-0 bg-dark-surface z-10">
-        Registro <span className="text-neon-orange">Técnico</span>
-      </h2>
+      <div className="sticky top-0 bg-dark-surface z-10 pb-4 border-b border-dark-border mb-4">
+        <h2 className="text-lg font-black text-white uppercase tracking-[4px]">
+          Folha de <span className="text-neon-orange">Registro Técnico</span>
+        </h2>
+        <p className="text-[7px] font-black text-neon-cyan/50 uppercase tracking-widest mt-1">Localidade Padrão: Paracambi - RJ</p>
+      </div>
       
-      {/* ... (campos de disciplina e local omitidos para brevidade, mas mantidos no código original) ... */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="mb-3">
               <label className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">Disciplina</label>
-              <select name="discipline" value={task.discipline} onChange={handleChange} className="w-full bg-dark-bg border border-dark-border p-2 text-white font-mono text-sm outline-none">
+              <select name="discipline" value={task.discipline} onChange={handleChange} className="w-full bg-dark-bg border border-dark-border p-2 text-white font-mono text-sm outline-none focus:border-neon-cyan">
                   {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
           </div>
           <div className="mb-3">
-              <label className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">Nível</label>
-              <select name="level" value={task.level} onChange={handleChange} className="w-full bg-dark-bg border border-dark-border p-2 text-white font-mono text-sm outline-none">
+              <label className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">Nível Operacional</label>
+              <select name="level" value={task.level} onChange={handleChange} className="w-full bg-dark-bg border border-dark-border p-2 text-white font-mono text-sm outline-none focus:border-neon-cyan">
                   <option value="">Selecionar...</option>
                   {(DISCIPLINE_LEVELS[task.discipline] || []).map(l => <option key={l} value={l}>{l}</option>)}
               </select>
           </div>
       </div>
 
-      <InputField label="Descrição da Atividade" name="name" value={task.name} onChange={handleChange} placeholder="Ex: Concretagem de Viga S01..." />
+      <InputField label="Descrição da Atividade" name="name" value={task.name} onChange={handleChange} placeholder="Ex: Montagem de Cimbramento..." />
 
       <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
-          {/* Planejado */}
-          <div className="bg-neon-orange/5 p-3 border border-neon-orange/20">
+          {/* Módulo Clima Planejado */}
+          <div className="bg-neon-orange/5 p-3 border border-neon-orange/20 relative overflow-hidden">
             <div className="flex justify-between items-center mb-3">
                 <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest">Cronograma Planejado</p>
                 <button 
                   type="button" 
                   onClick={() => fetchWeather('planned')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-2 py-1 border border-neon-orange text-[8px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-30"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-orange text-[8px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
                 >
-                    {loadingWeather === 'planned' ? 'Consultando...' : <><WeatherIcon /> Previsão Meteorológica</>}
+                    {loadingWeather === 'planned' ? 'Analizando...' : <><WeatherIcon /> Previsão Paracambi</>}
                 </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <InputField label="Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} />
-              <InputField label="Fim" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} />
+              <InputField label="Início (ETA)" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} />
+              <InputField label="Fim (ETA)" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} />
             </div>
             {task.plannedWeather && (
-                <div className="mt-2 p-2 bg-black/40 border-l-2 border-neon-orange font-mono text-[9px] text-white/70 italic leading-tight">
-                    {task.plannedWeather}
+                <div className="mt-2 p-2 bg-black/60 border-l-2 border-neon-orange">
+                    <p className="font-mono text-[9px] text-white/90 leading-tight italic">{task.plannedWeather}</p>
+                    {renderSources(weatherSources.planned)}
                 </div>
             )}
           </div>
 
-          {/* Real */}
+          {/* Módulo Clima Realizado */}
           <div className="bg-neon-green/5 p-3 border border-neon-green/20">
             <div className="flex justify-between items-center mb-3">
                 <p className="text-[9px] font-black text-neon-green uppercase tracking-widest">Execução Real</p>
@@ -194,34 +232,47 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                   type="button" 
                   onClick={() => fetchWeather('actual')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-2 py-1 border border-neon-green text-[8px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-30"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-green text-[8px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
                 >
-                    {loadingWeather === 'actual' ? 'Buscando Histórico...' : <><WeatherIcon /> Histórico Real Clima</>}
+                    {loadingWeather === 'actual' ? 'Sincronizando...' : <><WeatherIcon /> Histórico Real</>}
                 </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} />
-              <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} />
+              <InputField label="Término Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} />
             </div>
             {task.actualWeather && (
-                <div className="mt-2 p-2 bg-black/40 border-l-2 border-neon-green font-mono text-[9px] text-white/70 italic leading-tight">
-                    {task.actualWeather}
+                <div className="mt-2 p-2 bg-black/60 border-l-2 border-neon-green">
+                    <p className="font-mono text-[9px] text-white/90 leading-tight italic">{task.actualWeather}</p>
+                    {renderSources(weatherSources.actual)}
                 </div>
             )}
           </div>
       </div>
 
-      <div className="pt-4">
-          <label className="text-[9px] font-black text-neon-cyan uppercase mb-1 block">Avanço Físico: {task.progress}%</label>
-          <input type="range" min="0" max="100" value={task.progress || 0} onChange={(e) => setTask(prev => ({...prev, progress: Number(e.target.value)}))} className="w-full h-1 bg-dark-bg appearance-none cursor-pointer accent-neon-cyan" />
+      <div className="pt-4 border-t border-dark-border mt-4">
+          <div className="flex justify-between mb-1">
+            <label className="text-[9px] font-black text-neon-cyan uppercase">Avanço Físico</label>
+            <span className="text-[10px] font-mono text-neon-cyan">{task.progress}%</span>
+          </div>
+          <input 
+            type="range" 
+            min="0" 
+            max="100" 
+            value={task.progress || 0} 
+            onChange={(e) => setTask(prev => ({...prev, progress: Number(e.target.value)}))} 
+            className="w-full h-1 bg-dark-bg appearance-none cursor-pointer accent-neon-cyan border border-dark-border" 
+          />
       </div>
 
-      <TextareaField label="Notas de Campo / Observações" name="observations" value={task.observations} onChange={handleChange} />
+      <TextareaField label="Observações e Impedimentos" name="observations" value={task.observations} onChange={handleChange} placeholder="Relate condições de acesso, equipamentos ou atrasos..." />
 
-      <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-dark-surface z-10 border-t border-dark-border py-3 mt-4">
-        <button type="button" onClick={onCancel} className="text-white/30 font-black text-[9px] uppercase tracking-widest hover:text-white transition-colors">Cancelar</button>
+      <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-dark-surface z-10 border-t border-dark-border py-4 mt-6">
+        <button type="button" onClick={onCancel} className="text-white/30 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors px-4">Cancelar</button>
         {!isViewer && (
-            <button type="submit" className="bg-transparent text-neon-cyan border-2 border-neon-cyan font-black py-2 px-8 uppercase text-[10px] tracking-[2px] hover:bg-neon-cyan hover:text-black transition-all">Confirmar Registro</button>
+            <button type="submit" className="bg-neon-cyan text-black font-black py-2.5 px-10 uppercase text-[11px] tracking-[2px] hover:bg-white shadow-neon-cyan transition-all active:scale-95">
+              Confirmar Registro
+            </button>
         )}
       </div>
     </form>
