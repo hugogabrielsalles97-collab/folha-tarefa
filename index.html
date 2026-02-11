@@ -44,6 +44,16 @@
         color: #e2e8f0;
       }
 
+      /* Estilo para tornar o ícone de calendário branco em inputs escuros */
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+        opacity: 0.8;
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+      }
+
       .blueprint-grid {
         background-image: 
           linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
@@ -51,7 +61,6 @@
         background-size: 50px 50px;
       }
 
-      /* Moldura Técnica Neon */
       .technical-frame {
         background: #16161a;
         border: 1px solid #2a2a30;
@@ -116,7 +125,7 @@
       @media print {
         @page {
           margin: 1cm;
-          size: auto; /* Permite ao usuário escolher Retrato ou Paisagem no navegador */
+          size: auto;
         }
         
         body { 
@@ -156,7 +165,6 @@
           display: none !important; 
         }
 
-        /* Garantir texto preto puro em tudo na impressão para máxima legibilidade */
         * {
           color: black !important;
           text-shadow: none !important;
@@ -166,7 +174,6 @@
           print-color-adjust: exact !important;
         }
 
-        /* Estilo para a barra de progresso em escala de cinza de alto contraste */
         .progress-bar-bg {
           border: 1px solid black !important;
           background-color: #f0f0f0 !important;
@@ -176,12 +183,10 @@
           background-color: #000 !important;
         }
 
-        /* Esconder ícones, botões e elementos de filtragem no papel */
         button, select, input, .print-hidden {
           display: none !important;
         }
 
-        /* Ajuste de min-width para garantir que a tabela ocupe 100% da largura disponível */
         .min-w-\[800px\] {
           min-w-full !important;
           width: 100% !important;

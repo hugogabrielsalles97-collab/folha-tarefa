@@ -96,7 +96,7 @@ const App: React.FC = () => {
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
       </main>
 
-      {(role === 'PLANEJADOR' || role === 'PRODUÇÃO') && (
+      {(role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER') && (
         <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
           <TaskForm 
             onSave={handleSaveTask} 

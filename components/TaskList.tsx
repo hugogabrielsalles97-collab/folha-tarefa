@@ -14,7 +14,9 @@ interface TaskListProps {
 
 const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; }> = ({ task, onEdit, onDelete }) => {
   const { role } = useAuth();
-  const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
+  // Agora visitantes também veem o botão de "editar", mas ele servirá apenas para ver detalhes.
+  const showViewButton = role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER';
+  const canDelete = role === 'PLANEJADOR';
 
   const getStatusInfo = (task: Task) => {
     const today = new Date();
@@ -81,7 +83,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* PROGRESSO */}
-      <div className={showActions ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"}>
+      <div className={showViewButton ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -91,12 +93,12 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* AÇÕES - Visíveis e acessíveis no mobile */}
-      {showActions && (
+      {showViewButton && (
         <div className="col-span-3 md:col-span-1 flex justify-end gap-2 print:hidden">
-          <button onClick={() => onEdit(task)} title="Editar" className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all active:scale-90">
+          <button onClick={() => onEdit(task)} title={role === 'VIEWER' ? "Visualizar" : "Editar"} className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all active:scale-90">
             <EditIcon />
           </button>
-          {role === 'PLANEJADOR' && (
+          {canDelete && (
             <button onClick={() => onDelete(task.id)} title="Excluir" className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-magenta hover:border-neon-magenta transition-all active:scale-90">
               <DeleteIcon />
             </button>
@@ -129,7 +131,7 @@ const SortableHeader: React.FC<{
 
 const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, sortConfig }) => {
   const { role } = useAuth();
-  const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
+  const showActionsHeader = role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER';
 
   if (tasks.length === 0) {
     return <p className="text-center text-white/20 font-black py-20 uppercase tracking-[10px] print:text-black">TERMINAL VAZIO</p>;
@@ -145,8 +147,8 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
                 <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" centered />
                 <SortableHeader title="Previsto" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"} />
-                {showActions && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Ops</div>}
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-5 md:col-span-2" : "col-span-8 md:col-span-3"} />
+                {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
             </div>
             {/* Lista de Itens */}
             <div className="divide-y divide-white/[0.03] print:divide-black">

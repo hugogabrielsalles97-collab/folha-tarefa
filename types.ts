@@ -43,4 +43,5 @@ export interface Task {
   actualStartDate?: string; // YYYY-MM-DD
   actualEndDate?: string; // YYYY-MM-DD
   progress: number; // 0-100
+  observations?: string;
 }
