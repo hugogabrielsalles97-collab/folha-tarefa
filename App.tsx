@@ -11,7 +11,7 @@ import { useAuth } from './contexts/AuthContext';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
-  const { tasks, addTask, updateTask, deleteTask, loading, error } = useSupabaseTasks();
+  const { tasks, addTask, updateTask, deleteTask, loading } = useSupabaseTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -35,9 +35,10 @@ const App: React.FC = () => {
             await updateTask(task);
         }
         handleCloseModal();
-    } catch (e) {
-        console.error("Erro:", e);
-        alert("Falha ao salvar a tarefa no servidor.");
+    } catch (e: any) {
+        console.error("Erro capturado no App:", e);
+        // Exibe o erro real para facilitar o diagnóstico
+        alert(`Erro ao salvar no servidor: ${e.message || "Verifique a conexão ou colunas do banco."}`);
     }
   }, [editingTask, addTask, updateTask, handleCloseModal]);
 
@@ -45,8 +46,8 @@ const App: React.FC = () => {
     if (window.confirm('Confirmar exclusão definitiva do registro técnico?')) {
       try {
         await deleteTask(taskId);
-      } catch (e) {
-        alert("Erro ao excluir.");
+      } catch (e: any) {
+        alert(`Erro ao excluir: ${e.message}`);
       }
     }
   }, [deleteTask]);
