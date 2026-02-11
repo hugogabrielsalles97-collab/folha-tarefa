@@ -1,62 +1,122 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NSA - SERRA DAS ARARAS</title>
+    <title>NSA - SERRA DAS ARARAS | ENGENHARIA NEON</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              'neon-cyan': '#00ffff',
+              'neon-cyan': '#00f3ff',
               'neon-magenta': '#ff00ff',
+              'neon-red': '#ff3131',
               'neon-green': '#39ff14',
               'neon-orange': '#ff8c00',
-              'dark-bg': '#0a0a0a',
-              'dark-surface': '#1a1a1a',
-              'dark-border': '#2a2a2a',
+              'dark-bg': '#0a0a0c',
+              'dark-surface': '#16161a',
+              'dark-border': '#2a2a30',
+              'eng-blue': '#00f3ff',
+              'eng-orange': '#ff8c00',
             },
             boxShadow: {
-              'neon-cyan': '0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff',
-              'neon-magenta': '0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff',
-              'neon-green': '0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 20px #39ff14, 0 0 40px #39ff14',
+              'neon-cyan': '0 0 10px rgba(0, 243, 255, 0.3)',
+              'neon-magenta': '0 0 10px rgba(255, 0, 255, 0.3)',
+              'neon-red': '0 0 10px rgba(255, 49, 49, 0.3)',
+              'neon-green': '0 0 10px rgba(57, 255, 20, 0.3)',
+              'neon-orange': '0 0 10px rgba(255, 140, 0, 0.3)',
             }
           }
         }
       }
     </script>
     <style>
+      body {
+        background-color: #0a0a0c;
+        background-image: 
+          linear-gradient(rgba(42, 42, 48, 0.5) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(42, 42, 48, 0.5) 1px, transparent 1px);
+        background-size: 25px 25px;
+        color: #e2e8f0;
+      }
+
+      .blueprint-grid {
+        background-image: 
+          linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+      }
+
+      /* Moldura Técnica Neon */
+      .technical-frame {
+        background: #16161a;
+        border: 1px solid #2a2a30;
+        position: relative;
+        padding: 1.25rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      .technical-frame::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin: 4px;
+        pointer-events: none;
+      }
+
+      .corner-marker {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border: 2px solid #ff8c00;
+        z-index: 5;
+        filter: drop-shadow(0 0 5px #ff8c00);
+      }
+      .corner-tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+      .corner-tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
+      .corner-bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
+      .corner-br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+      .eng-header-tab {
+        background: #00f3ff;
+        color: #000;
+        padding: 3px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 900;
+        display: inline-block;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        position: relative;
+        z-index: 10;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0a0a0c;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2a2a30;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #00f3ff;
+      }
+
       @media print {
-        body {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        /* Override dark theme for printing */
-        .bg-dark-surface, .bg-dark-bg, .hover\:bg-dark-bg:hover {
-          background-color: #ffffff !important;
-        }
-        .text-white, .text-gray-200, .text-gray-300, .text-gray-400, .text-neon-cyan, .text-neon-magenta, .text-neon-green, .text-neon-orange, .text-red-400 {
-          color: #000000 !important;
-        }
-        .border-dark-border, .border-b, .border-neon-magenta\/50, .border-b-2 {
-          border-color: #cccccc !important;
-        }
-        /* Hide progress bar background and make progress visible */
-        .w-full.bg-dark-border.rounded-full {
-            background-color: #e5e5e5 !important;
-            border: 1px solid #ccc;
-        }
-        .bg-neon-green {
-            background-color: #bbbbbb !important;
-        }
-        /* Make status tags readable */
-        .bg-neon-green\/20, .bg-red-500\/20, .bg-neon-orange\/20 {
-          background-color: transparent !important;
-          border: 1px solid #000;
-        }
+        body { background: white !important; color: black !important; }
+        .technical-frame { box-shadow: none !important; border: 1px solid #000 !important; }
+        .corner-marker { display: none; }
       }
     </style>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -77,7 +137,7 @@
 }
 </script>
 </head>
-  <body class="bg-dark-bg text-gray-200">
+  <body class="blueprint-grid min-h-screen">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

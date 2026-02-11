@@ -13,32 +13,28 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center backdrop-blur-sm"
+      className="fixed inset-0 bg-black/95 z-50 flex justify-center items-center backdrop-blur-md p-4"
       onClick={onClose}
     >
       <div
-        className="bg-dark-surface rounded-lg shadow-lg w-full max-w-2xl mx-4 border border-neon-magenta/50 shadow-neon-magenta/20 relative animate-fade-in"
+        className="bg-dark-surface w-full max-w-2xl border-2 border-neon-cyan/50 shadow-[0_0_30px_rgba(0,243,255,0.2)] relative animate-in fade-in zoom-in duration-300"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="corner-marker corner-tl"></div>
+        <div className="corner-marker corner-tr"></div>
+        <div className="corner-marker corner-bl"></div>
+        <div className="corner-marker corner-br"></div>
+        
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-neon-magenta transition-colors"
+          className="absolute top-4 right-4 text-white/30 hover:text-neon-magenta transition-colors p-2"
         >
           <CloseIcon />
         </button>
-        <div className="p-6">
+        <div className="p-8 md:p-10">
           {children}
         </div>
       </div>
-      <style>{`
-        @keyframes fade-in {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fade-in {
-            animation: fade-in 0.3s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 };

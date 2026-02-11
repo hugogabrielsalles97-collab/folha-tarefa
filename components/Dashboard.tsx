@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Task } from '../types';
+import { Task, Discipline } from '../types';
 import KPI from './KPI';
 import ProgressChart from './ProgressChart';
 import GanttChart from './GanttChart';
@@ -14,27 +14,48 @@ interface DashboardProps {
   onDeleteTask: (taskId: string) => void;
 }
 
+const TechnicalFrame: React.FC<{ title: string; children: React.ReactNode; className?: string; headerContent?: React.ReactNode }> = ({ title, children, className = "", headerContent }) => (
+  <div className={`technical-frame ${className}`}>
+    <div className="corner-marker corner-tl"></div>
+    <div className="corner-marker corner-tr"></div>
+    <div className="corner-marker corner-bl"></div>
+    <div className="corner-marker corner-br"></div>
+    <div className="flex justify-between items-start">
+      <div className="eng-header-tab mb-6">{title}</div>
+      {headerContent}
+    </div>
+    <div className="relative z-0">
+      {children}
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }) => {
   const [filter, setFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [disciplineFilter, setDisciplineFilter] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
+  const [specificFieldFilter, setSpecificFieldFilter] = useState('');
   const [ganttOAEFilter, setGanttOAEFilter] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Task | 'status'; direction: 'asc' | 'desc' }>({ key: 'plannedStartDate', direction: 'asc' });
-
-  const allLevels = useMemo(() => {
-    const levels = Object.values(DISCIPLINE_LEVELS).flat();
-    return [...new Set(levels)].sort();
-  }, []);
 
   const { filteredTasks, stats } = useMemo(() => {
     const filtered = tasks.filter(task => {
       const nameMatch = task.name.toLowerCase().includes(filter.toLowerCase());
+      const disciplineMatch = !disciplineFilter || task.discipline === disciplineFilter;
       const levelMatch = !levelFilter || task.level === levelFilter;
+      
+      let specificFieldMatch = true;
+      if (disciplineFilter && specificFieldFilter) {
+          if (disciplineFilter === Discipline.OAE) {
+              specificFieldMatch = task.obraDeArte === specificFieldFilter;
+          } else {
+              specificFieldMatch = task.corte === specificFieldFilter;
+          }
+      }
 
-      // Date filtering logic
       if (!task.plannedStartDate) return false;
-      // Using UTC to prevent timezone issues with 'YYYY-MM-DD' strings
       const taskDate = new Date(task.plannedStartDate + 'T00:00:00');
       const start = startDate ? new Date(startDate + 'T00:00:00') : null;
       const end = endDate ? new Date(endDate + 'T00:00:00') : null;
@@ -42,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
       const startDateMatch = !start || taskDate >= start;
       const endDateMatch = !end || taskDate <= end;
 
-      return nameMatch && levelMatch && startDateMatch && endDateMatch;
+      return nameMatch && disciplineMatch && levelMatch && specificFieldMatch && startDateMatch && endDateMatch;
     });
 
     const totalTasks = filtered.length;
@@ -63,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
         overallProgress,
       },
     };
-  }, [tasks, filter, startDate, endDate, levelFilter]);
+  }, [tasks, filter, startDate, endDate, disciplineFilter, levelFilter, specificFieldFilter]);
   
   const handleSort = (key: keyof Task | 'status') => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -72,161 +93,123 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
     }
     setSortConfig({ key, direction });
   };
+  
+  const handleDisciplineChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDiscipline = e.target.value;
+    setDisciplineFilter(newDiscipline);
+    setLevelFilter(''); 
+    setSpecificFieldFilter('');
+  };
 
   const sortedTasks = useMemo(() => {
     const getStatusValue = (task: Task) => {
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
         const endDate = new Date(task.plannedEndDate + 'T00:00:00');
-        if (task.progress === 100) return 2; // Concluída
-        if (today > endDate) return 0; // Atrasada
-        return 1; // Em Andamento
+        if (task.progress === 100) return 3; // Concluído
+        if (today > endDate) return 0; // Atrasado
+        if (!task.actualStartDate) return 1; // Não Iniciada
+        return 2; // Em Andamento
     };
     
     return [...filteredTasks].sort((a, b) => {
         if (!sortConfig.key) return 0;
-
         if (sortConfig.key === 'status') {
             const statusA = getStatusValue(a);
             const statusB = getStatusValue(b);
-            const comparison = statusA - statusB;
-            return sortConfig.direction === 'desc' ? comparison * -1 : comparison;
+            return sortConfig.direction === 'desc' ? statusB - statusA : statusA - statusB;
         }
-
         const aVal = a[sortConfig.key as keyof Task];
         const bVal = b[sortConfig.key as keyof Task];
-
         if (aVal == null) return 1;
         if (bVal == null) return -1;
 
         let comparison = 0;
         if (sortConfig.key === 'progress') {
             comparison = (aVal as number) - (bVal as number);
-        } else if (['plannedStartDate', 'plannedEndDate', 'actualStartDate', 'actualEndDate'].includes(sortConfig.key)) {
+        } else if (['plannedStartDate', 'plannedEndDate'].includes(sortConfig.key)) {
             comparison = new Date(aVal.toString()).getTime() - new Date(bVal.toString()).getTime();
         } else {
             comparison = aVal.toString().localeCompare(bVal.toString());
         }
-
         return sortConfig.direction === 'desc' ? comparison * -1 : comparison;
     });
   }, [filteredTasks, sortConfig]);
 
   const ganttTasks = useMemo(() => {
-    if (!ganttOAEFilter) {
-        return filteredTasks;
-    }
+    if (!ganttOAEFilter) return filteredTasks;
     return filteredTasks.filter(task => task.obraDeArte === ganttOAEFilter);
   }, [filteredTasks, ganttOAEFilter]);
 
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:hidden">
-        <KPI title="Total de Tarefas" value={stats.totalTasks} color="cyan" />
-        <KPI title="Tarefas Concluídas" value={stats.completedTasks} color="green" />
-        <KPI title="Tarefas em Andamento" value={stats.inProgressTasks} color="orange" />
-        <KPI title="Progresso Geral" value={`${stats.overallProgress}%`} color="magenta" />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+        <KPI title="Total Atividades" value={stats.totalTasks} color="cyan" />
+        <KPI title="Status: Concluído" value={stats.completedTasks} color="green" />
+        <KPI title="Status: Em Andamento" value={stats.inProgressTasks} color="orange" />
+        <KPI title="Avanço Físico Geral" value={`${stats.overallProgress}%`} color="magenta" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:hidden">
-        <div className="lg:col-span-1 bg-dark-border p-1 rounded-lg">
-          <div className="bg-dark-surface p-6 rounded-lg h-full">
-            <h3 className="text-xl font-semibold text-neon-cyan mb-4">Progresso por Disciplina</h3>
-            <ProgressChart tasks={filteredTasks} />
-          </div>
-        </div>
-        <div className="lg:col-span-2 bg-dark-border p-1 rounded-lg">
-          <div className="bg-dark-surface p-6 rounded-lg h-full">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-              <h3 className="text-xl font-semibold text-neon-cyan">Linha do Tempo (Gantt)</h3>
-              <div>
-                <label htmlFor="ganttOAEFilter" className="sr-only">Filtrar por Obra de Arte</label>
-                <select
-                  id="ganttOAEFilter"
-                  value={ganttOAEFilter}
-                  onChange={e => setGanttOAEFilter(e.target.value)}
-                  className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan text-sm"
-                >
-                  <option value="">Todas as Obras de Arte</option>
-                  {OBRAS_DE_ARTE_OPTIONS.map(oae => (
-                    <option key={oae} value={oae}>{oae}</option>
-                  ))}
-                </select>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
+        <TechnicalFrame title="PROGRESSO DISCIPLINAR" className="lg:col-span-1">
+          <ProgressChart tasks={filteredTasks} />
+        </TechnicalFrame>
+        
+        <TechnicalFrame 
+          title="LINHA DO TEMPO (GANTT)" 
+          className="lg:col-span-2"
+          headerContent={
+            <div className="flex flex-col items-end">
+              <label className="text-[10px] font-black text-neon-orange uppercase tracking-widest mb-1">Seletor de OAE</label>
+              <select
+                id="ganttOAEFilter"
+                value={ganttOAEFilter}
+                onChange={e => setGanttOAEFilter(e.target.value)}
+                className="bg-dark-bg border-2 border-neon-orange shadow-neon-orange text-white p-2 text-xs font-bold uppercase outline-none focus:bg-neon-orange focus:text-black transition-all"
+              >
+                <option value="">TODAS AS OBRAS</option>
+                {OBRAS_DE_ARTE_OPTIONS.map(oae => <option key={oae} value={oae}>{oae}</option>)}
+              </select>
+            </div>
+          }
+        >
+          <GanttChart tasks={ganttTasks} />
+        </TechnicalFrame>
+      </div>
+
+      <TechnicalFrame title="PREVISTO VS REALIZADO" className="print:hidden">
+        <CompletionChart tasks={filteredTasks} />
+      </TechnicalFrame>
+
+      <TechnicalFrame 
+        title="LISTA DE TAREFAS"
+        headerContent={
+          <div className="flex flex-wrap items-end gap-3 print:hidden">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-black uppercase text-white/40 mb-1">Datas Planejadas</label>
+              <div className="flex gap-1">
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan" />
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan" />
               </div>
             </div>
-            <GanttChart tasks={ganttTasks} />
+            <div className="flex flex-col">
+              <label className="text-[10px] font-black uppercase text-white/40 mb-1">Disciplina</label>
+              <select value={disciplineFilter} onChange={handleDisciplineChange} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan uppercase font-bold">
+                  <option value="">TODAS</option>
+                  {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <button
+              onClick={() => window.print()}
+              className="bg-eng-blue text-black font-black py-2 px-5 text-xs uppercase border border-black hover:opacity-80 transition-opacity"
+            >
+              Imprimir
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-dark-border p-1 rounded-lg print:hidden">
-        <div className="bg-dark-surface p-6 rounded-lg">
-          <h3 className="text-xl font-semibold text-neon-cyan mb-4">Previsto vs. Realizado</h3>
-          <CompletionChart tasks={filteredTasks} />
-        </div>
-      </div>
-
-      <div className="bg-dark-border p-1 rounded-lg">
-        <div className="bg-dark-surface p-6 rounded-lg">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-              <h3 className="text-xl font-semibold text-neon-cyan">Lista de Tarefas</h3>
-              <div className="flex items-center gap-4">
-                <div className="flex flex-wrap items-end gap-4 print:hidden">
-                  <div>
-                    <label htmlFor="startDate" className="block text-xs font-medium text-gray-400 mb-1">Data Início (Prev.)</label>
-                    <input
-                        id="startDate"
-                        type="date"
-                        value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
-                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="endDate" className="block text-xs font-medium text-gray-400 mb-1">Data Fim (Prev.)</label>
-                    <input
-                        id="endDate"
-                        type="date"
-                        value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
-                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="levelFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por Nível</label>
-                    <select
-                        id="levelFilter"
-                        value={levelFilter}
-                        onChange={e => setLevelFilter(e.target.value)}
-                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan w-full min-w-[180px]"
-                    >
-                        <option value="">Todos os Níveis</option>
-                        {allLevels.map(level => (
-                            <option key={level} value={level}>{level}</option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="textFilter" className="block text-xs font-medium text-gray-400 mb-1">Filtrar por nome</label>
-                    <input
-                        id="textFilter"
-                        type="text"
-                        placeholder="Nome da tarefa..."
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                        className="bg-dark-bg border border-dark-border rounded-md shadow-sm p-2 text-white focus:ring-neon-cyan focus:border-neon-cyan"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => window.print()}
-                  className="print:hidden self-end bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg hover:bg-neon-cyan transition-all duration-300 h-10"
-                >
-                  Imprimir
-                </button>
-              </div>
-          </div>
+        }
+      >
+        <div className="mt-4">
           <TaskList 
               tasks={sortedTasks} 
               onEdit={onEditTask} 
@@ -235,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
               sortConfig={sortConfig}
           />
         </div>
-      </div>
+      </TechnicalFrame>
     </div>
   );
 };

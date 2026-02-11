@@ -1,6 +1,6 @@
+
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-// FIX: Import date-fns functions from their specific subpaths to resolve module resolution errors.
 import { eachDayOfInterval, format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import min from 'date-fns/min';
@@ -14,10 +14,10 @@ interface CompletionChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-dark-surface p-2 border border-dark-border rounded">
-        <p className="label text-white font-bold">{`Data: ${label}`}</p>
-        <p className="intro text-neon-orange">{`Previsto: ${payload[0].value}`}</p>
-        {payload[1] && payload[1].value !== null && <p className="intro text-neon-green">{`Realizado: ${payload[1].value}`}</p>}
+      <div className="bg-dark-surface p-3 border border-dark-border shadow-lg">
+        <p className="label text-white/40 font-mono text-[10px] mb-2">{`DATA: ${label}`}</p>
+        <p className="text-neon-orange font-bold text-xs">{`PREVISTO: ${payload[0].value}`}</p>
+        {payload[1] && payload[1].value !== null && <p className="text-neon-green font-bold text-xs">{`REALIZADO: ${payload[1].value}`}</p>}
       </div>
     );
   }
@@ -39,7 +39,7 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
         });
 
         const minDate = min(allDates);
-        const maxDate = max([...allDates, new Date()]); // Go up to today or last date
+        const maxDate = max([...allDates, new Date()]);
 
         const dateInterval = eachDayOfInterval({ start: minDate, end: maxDate });
         
@@ -59,7 +59,7 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
         let plannedCumulative = 0;
         let actualCumulative = 0;
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day for accurate comparison
+        today.setHours(0, 0, 0, 0);
 
         return dateInterval.map(day => {
             const dayKey = format(day, 'yyyy-MM-dd');
@@ -80,8 +80,8 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
     
     if (chartData.length === 0) {
         return (
-            <div className="flex items-center justify-center h-full text-gray-500 min-h-[250px]">
-                Sem dados de conclusão para exibir o gráfico.
+            <div className="flex items-center justify-center h-full text-white/5 min-h-[250px] uppercase font-black tracking-[5px]">
+                Sem dados de análise.
             </div>
         );
     }
@@ -89,14 +89,14 @@ const CompletionChart: React.FC<CompletionChartProps> = ({ tasks }) => {
     return (
         <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
-                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                    <XAxis dataKey="date" stroke="#888" tick={{ fill: '#888', fontSize: 12 }} />
-                    <YAxis stroke="#888" tick={{ fill: '#888' }} label={{ value: 'Nº Tarefas Acumulado', angle: -90, position: 'insideLeft', fill: '#888' }}/>
+                <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="date" stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
+                    <YAxis stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ color: '#fff' }} />
-                    <Line type="monotone" dataKey="previstas" name="Previstas" stroke="#ff8c00" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="realizadas" name="Realizadas" stroke="#39ff14" strokeWidth={2} dot={false} connectNulls={false} />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    <Line type="monotone" dataKey="previstas" name="PLANEJADO" stroke="#ff8c00" strokeWidth={3} dot={false} strokeDasharray="5 5" />
+                    <Line type="monotone" dataKey="realizadas" name="EXECUTADO" stroke="#39ff14" strokeWidth={3} shadow="0 0 10px #39ff14" dot={false} connectNulls={false} />
                 </LineChart>
             </ResponsiveContainer>
         </div>

@@ -7,14 +7,14 @@ interface ProgressChartProps {
   tasks: Task[];
 }
 
-const COLORS = ['#00ffff', '#ff00ff', '#39ff14'];
+const COLORS = ['#00f3ff', '#ff00ff', '#39ff14'];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-dark-surface p-2 border border-dark-border rounded">
-        <p className="label text-white">{`${label}`}</p>
-        <p className="intro text-neon-cyan">{`Progresso: ${payload[0].value.toFixed(1)}%`}</p>
+      <div className="bg-dark-surface p-3 border border-dark-border text-[10px] font-bold shadow-neon-cyan">
+        <p className="label uppercase text-white/50">{`${label}`}</p>
+        <p className="intro text-neon-cyan">{`AVANÇO: ${payload[0].value.toFixed(1)}%`}</p>
       </div>
     );
   }
@@ -41,23 +41,23 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ tasks }) => {
   }, [tasks]);
 
   return (
-    <div style={{ width: '100%', height: 300 }}>
+    <div style={{ width: '100%', height: 250 }}>
         {tasks.length > 0 ? (
             <ResponsiveContainer>
-                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 80, bottom: 5 }}>
-                <XAxis type="number" domain={[0, 100]} stroke="#888" tick={{ fill: '#888' }} />
-                <YAxis type="category" dataKey="name" stroke="#888" width={120} tick={{ fill: '#888', fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
-                <Bar dataKey="progress" radius={[0, 5, 5, 0]}>
+                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <XAxis type="number" domain={[0, 100]} stroke="#2a2a30" tick={{ fill: '#475569', fontSize: 10 }} />
+                <YAxis type="category" dataKey="name" stroke="#2a2a30" width={100} tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 'bold' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                <Bar dataKey="progress" barSize={12} radius={[0, 4, 4, 0]}>
                     {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} fillOpacity={0.8} />
                     ))}
                 </Bar>
                 </BarChart>
             </ResponsiveContainer>
         ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-                Sem dados para exibir o gráfico.
+            <div className="flex items-center justify-center h-full text-white/10 text-[10px] font-black uppercase tracking-[3px]">
+                Sem telemetria disponível.
             </div>
         )}
     </div>

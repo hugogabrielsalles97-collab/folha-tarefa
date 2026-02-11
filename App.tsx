@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Task } from './types';
 import { useSupabaseTasks } from './hooks/useSupabaseTasks';
@@ -26,100 +27,70 @@ const App: React.FC = () => {
 
   const handleSaveTask = useCallback(async (task: Task) => {
     const isNewTask = !editingTask;
-
-    const performSave = async () => {
-        try {
-            if (isNewTask) {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { id, created_at, ...newTaskData } = task;
-                await addTask(newTaskData);
-            } else {
-                await updateTask(task);
-            }
-            handleCloseModal();
-        } catch (e) {
-            console.error("Falha ao salvar:", e);
-            alert("Não foi possível salvar a tarefa. Verifique o console para mais detalhes.");
-        }
-    };
-
-    if (isNewTask) {
-        // FIX: Ensure dates are parsed as UTC to prevent timezone bugs
-        const newStart = new Date(task.plannedStartDate + 'T00:00:00').getTime();
-        const newEnd = new Date(task.plannedEndDate + 'T00:00:00').getTime();
-
-        const overlappingTasks = tasks.filter(existingTask => {
-            if (existingTask.name !== task.name) {
-                return false;
-            }
-            const existingStart = new Date(existingTask.plannedStartDate + 'T00:00:00').getTime();
-            const existingEnd = new Date(existingTask.plannedEndDate + 'T00:00:00').getTime();
-            
-            return newStart <= existingEnd && newEnd >= existingStart;
-        });
-
-        if (overlappingTasks.length > 0) {
-            const confirmationMessage = `Já existem ${overlappingTasks.length} tarefas com o nome "${task.name}" planejadas para este período. Deseja criar mesmo assim?`;
-            if (window.confirm(confirmationMessage)) {
-                await performSave();
-            }
+    try {
+        if (isNewTask) {
+            const { id, created_at, ...newTaskData } = task;
+            await addTask(newTaskData);
         } else {
-            await performSave();
+            await updateTask(task);
         }
-    } else { // This is an edit
-        await performSave();
+        handleCloseModal();
+    } catch (e) {
+        console.error("Erro:", e);
+        alert("Falha ao salvar a tarefa no servidor.");
     }
-  }, [tasks, editingTask, addTask, updateTask, handleCloseModal]);
-
+  }, [editingTask, addTask, updateTask, handleCloseModal]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta tarefa?')) {
+    if (window.confirm('Confirmar exclusão definitiva do registro técnico?')) {
       try {
         await deleteTask(taskId);
       } catch (e) {
-        console.error("Falha ao excluir:", e);
-        alert("Não foi possível excluir a tarefa.");
+        alert("Erro ao excluir.");
       }
     }
   }, [deleteTask]);
 
-
-  if (!role) {
-    return <Login />;
-  }
+  if (!role) return <Login />;
 
   return (
-    <div className="min-h-screen bg-dark-bg p-4 sm:p-6 lg:p-8 font-sans">
-      <header className="flex justify-between items-center mb-8 print:hidden">
-        <div>
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-sans">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 border-b border-dark-border pb-8">
+        <div className="flex items-center gap-6">
+          <div className="bg-neon-orange p-3 text-black font-black text-2xl rotate-[-2deg] shadow-neon-orange">
+            NSA
+          </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-neon-cyan tracking-wider" style={{textShadow: '0 0 5px #00ffff'}}>
-              NSA - SERRA DAS ARARAS
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">
+              Folha Tarefa <span className="text-neon-cyan text-glow-cyan">Digital</span>
             </h1>
-            <p className="text-gray-400 mt-1">Dashboard de Acompanhamento de Atividades</p>
+            <p className="text-[12px] font-black text-neon-cyan/60 uppercase tracking-[4px]">Monitoramento Serra das Araras</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {role === 'PLANEJADOR' && (
             <button
               onClick={() => handleOpenModal(null)}
-              className="flex items-center gap-2 bg-neon-cyan/90 text-black font-bold py-2 px-4 rounded-lg shadow-neon-cyan hover:bg-neon-cyan transition-all duration-300 transform hover:scale-105"
+              className="flex items-center gap-2 bg-transparent text-neon-orange font-bold py-2 px-6 border-2 border-neon-orange shadow-neon-orange hover:bg-neon-orange hover:text-black transition-all"
             >
               <AddIcon />
-              <span className="hidden sm:inline">Nova Tarefa</span>
+              <span className="text-sm uppercase tracking-widest">Nova Tarefa</span>
             </button>
           )}
           <button
             onClick={logout}
-            className="bg-dark-surface text-gray-300 font-bold py-2 px-4 rounded-lg hover:bg-dark-border hover:text-white transition-colors"
+            className="text-[11px] font-black text-white/50 hover:text-neon-magenta border border-white/10 px-4 py-2 uppercase tracking-widest transition-colors"
           >
-            Sair
+            Terminal Logout
           </button>
         </div>
       </header>
       
-      {loading && <p className="text-center text-neon-cyan my-4 print:hidden">Carregando dados em tempo real...</p>}
-      {error && <p className="text-center text-red-500 bg-red-500/10 p-3 rounded-md my-4 print:hidden">{error}</p>}
+      {loading && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-neon-cyan/20 z-50">
+            <div className="h-full bg-neon-cyan w-full animate-pulse shadow-neon-cyan"></div>
+        </div>
+      )}
 
       <main>
         <Dashboard tasks={tasks} onEditTask={handleOpenModal} onDeleteTask={handleDeleteTask} />
@@ -127,11 +98,7 @@ const App: React.FC = () => {
 
       {(role === 'PLANEJADOR' || role === 'PRODUÇÃO') && (
         <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-          <TaskForm 
-            onSave={handleSaveTask} 
-            onCancel={handleCloseModal} 
-            existingTask={editingTask}
-          />
+          <TaskForm onSave={handleSaveTask} onCancel={handleCloseModal} existingTask={editingTask} />
         </Modal>
       )}
     </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Task } from '../types';
 import { EditIcon, DeleteIcon } from './icons';
@@ -15,58 +16,79 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   const { role } = useAuth();
   const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
 
-  const getStatusColor = (progress: number, plannedEndDate: string) => {
+  const getStatusInfo = (task: Task) => {
     const today = new Date();
-    today.setUTCHours(0,0,0,0);
-    const endDate = new Date(plannedEndDate + 'T00:00:00');
-    if (progress === 100) return 'bg-neon-green/20 text-neon-green';
-    if (today > endDate) return 'bg-red-500/20 text-red-400';
-    return 'bg-neon-orange/20 text-neon-orange';
+    today.setUTCHours(0, 0, 0, 0);
+    const plannedEndDate = new Date(task.plannedEndDate + 'T00:00:00');
+
+    // Ordem de precedência: Concluído -> Atrasado -> Não Iniciada -> Em Andamento
+    if (task.progress === 100) {
+      return { text: 'CONCLUÍDO', colorClass: 'neon-green', hex: '#39ff14' };
+    }
+    
+    // Atrasado: Não tem término real até a data que for aberto o app
+    if (today > plannedEndDate) {
+      return { text: 'ATRASADO', colorClass: 'neon-red', hex: '#ff3131' };
+    }
+
+    // Não iniciada: Não possui início real
+    if (!task.actualStartDate) {
+      return { text: 'NÃO INICIADA', colorClass: 'neon-orange', hex: '#ff8c00' };
+    }
+
+    // Em andamento: Tem início real mas não tem término real e está no prazo
+    return { text: 'EM ANDAMENTO', colorClass: 'neon-cyan', hex: '#00f3ff' };
   };
-  
-  const statusText = (progress: number, plannedEndDate: string) => {
-    const today = new Date();
-    today.setUTCHours(0,0,0,0);
-    const endDate = new Date(plannedEndDate + 'T00:00:00');
-    if (progress === 100) return 'Concluída';
-    if (today > endDate) return 'Atrasada';
-    return 'Em Andamento';
-  }
+
+  const status = getStatusInfo(task);
+
+  const getStatusStyle = () => {
+    return `text-${status.colorClass} border-${status.colorClass}/40 bg-${status.colorClass}/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]`;
+  };
+
+  const getProgressColorClass = () => {
+    return `bg-${status.colorClass} shadow-[0_0_15px_${status.hex}]`;
+  };
 
   return (
-    <div className="grid grid-cols-12 gap-4 items-center p-4 border-b border-dark-border hover:bg-dark-bg transition-colors duration-200">
+    <div className="grid grid-cols-12 gap-4 items-center p-5 border-b border-dark-border hover:bg-white/[0.04] transition-colors group">
       <div className="col-span-12 md:col-span-3">
-        <p className="font-bold text-white">{task.name}</p>
-        <p className="text-xs text-gray-400">{task.discipline} / {task.level}</p>
+        <p className="font-black text-white text-base tracking-tight group-hover:text-neon-cyan transition-colors">{task.name.toUpperCase()}</p>
+        <p className="text-[10px] text-white/40 font-bold uppercase tracking-[2px] mt-1">{task.discipline} / {task.level}</p>
       </div>
-      <div className="col-span-6 md:col-span-1 text-sm text-gray-300">
-        <p>{task.obraDeArte || 'N/A'}</p>
+      <div className="col-span-4 md:col-span-1 text-sm text-white/80 font-mono">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">OAE</span>
+        {task.obraDeArte || '---'}
       </div>
-      <div className="col-span-6 md:col-span-1 text-sm text-gray-300">
-        <p>{task.apoio || task.vao || 'N/A'}</p>
+      <div className="col-span-4 md:col-span-1 text-sm text-white/80 font-mono">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">LOCAL</span>
+        {task.apoio || task.vao || task.corte || '---'}
       </div>
-      <div className="col-span-6 md:col-span-2 text-sm text-gray-300">
-        <p>Início: {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-        <p>Fim: {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+      <div className="col-span-4 md:col-span-2 text-xs text-white/50 font-mono">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1">DATAS PREVISTAS</span>
+        {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
+        {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
       </div>
-      <div className="col-span-6 md:col-span-2">
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(task.progress, task.plannedEndDate)}`}>
-          {statusText(task.progress, task.plannedEndDate)}
+      <div className="col-span-6 md:col-span-1 flex justify-center">
+        <span className={`px-2 py-1 text-[9px] font-black border rounded-none tracking-widest text-center min-w-[110px] ${getStatusStyle()}`}>
+          {status.text}
         </span>
       </div>
-      <div className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-12 md:col-span-3"}>
-        <div className="w-full bg-dark-border rounded-full h-2.5">
-          <div className="bg-neon-green h-2.5 rounded-full" style={{ width: `${task.progress}%` }}></div>
+      <div className={showActions ? "col-span-4 md:col-span-3" : "col-span-6 md:col-span-4"}>
+        <div className="flex items-center gap-4">
+            <div className="flex-1 bg-dark-bg h-2 border border-dark-border overflow-hidden">
+                <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
+            </div>
+            <span className="text-sm font-black text-white/90 w-10 text-right font-mono">{task.progress}%</span>
         </div>
-        <p className="text-xs text-right text-gray-400 mt-1">{task.progress}%</p>
       </div>
       {showActions && (
-        <div className="col-span-3 md:col-span-1 flex justify-end items-center gap-2 print:hidden">
-          <button onClick={() => onEdit(task)} className="p-2 text-gray-400 hover:text-neon-cyan transition-colors">
+        <div className="col-span-2 md:col-span-1 flex justify-end gap-2 print:hidden">
+          <button onClick={() => onEdit(task)} className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-orange hover:border-neon-orange transition-all">
             <EditIcon />
           </button>
           {role === 'PLANEJADOR' && (
-            <button onClick={() => onDelete(task.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+            <button onClick={() => onDelete(task.id)} className="p-2 bg-dark-bg border border-dark-border text-white/40 hover:text-neon-magenta hover:border-neon-magenta transition-all">
               <DeleteIcon />
             </button>
           )}
@@ -84,13 +106,12 @@ const SortableHeader: React.FC<{
     className?: string;
 }> = ({ title, sortKey, onSort, sortConfig, className }) => {
     const isSorted = sortConfig.key === sortKey;
-    const direction = isSorted ? sortConfig.direction : null;
 
     return (
         <div className={className}>
-            <button onClick={() => onSort(sortKey)} className="flex items-center hover:text-white transition-colors duration-200">
+            <button onClick={() => onSort(sortKey)} className="flex items-center gap-1 text-white/30 hover:text-neon-cyan transition-colors uppercase text-[10px] font-black tracking-[2px]">
                 {title}
-                {isSorted && <span className="ml-2 text-xs">{direction === 'asc' ? '▲' : '▼'}</span>}
+                {isSorted && <span className="text-neon-orange text-[10px]">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
             </button>
         </div>
     );
@@ -101,25 +122,22 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
   const showActions = role === 'PLANEJADOR' || role === 'PRODUÇÃO';
 
   if (tasks.length === 0) {
-    return <p className="text-center text-gray-500 py-8">Nenhuma tarefa encontrada com os filtros atuais.</p>;
+    return <p className="text-center text-white/20 font-black py-20 uppercase tracking-[10px]">TERMINAL VAZIO</p>;
   }
 
   return (
     <div className="overflow-x-auto">
         <div className="min-w-full">
-            <div className="grid grid-cols-12 gap-4 p-4 font-bold text-sm text-gray-400 border-b-2 border-neon-magenta/50">
-                <SortableHeader title="Tarefa" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
-                <SortableHeader title="Obra de Arte" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" />
-                <SortableHeader title="Apoio / Vão" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" />
-                <SortableHeader title="Datas Previstas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" />
-                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" />
-                <SortableHeader title="Progresso" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-9 md:col-span-2 print:md:col-span-3" : "col-span-9 md:col-span-3"} />
-
-                {showActions && (
-                  <div className="col-span-3 md:col-span-1 text-right print:hidden">Ações</div>
-                )}
+            <div className="grid grid-cols-12 gap-4 p-5 border-b border-white/10 bg-white/[0.04] mb-2">
+                <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-3" />
+                <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" />
+                <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-1" />
+                <SortableHeader title="Datas Previstas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-4 md:col-span-2" />
+                <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1 text-center" />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActions ? "col-span-4 md:col-span-3" : "col-span-6 md:col-span-4"} />
+                {showActions && <div className="col-span-2 md:col-span-1 text-right text-[10px] font-black text-white/20 uppercase tracking-widest">Ações</div>}
             </div>
-            <div>
+            <div className="divide-y divide-white/[0.03]">
                 {tasks.map(task => (
                     <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
                 ))}

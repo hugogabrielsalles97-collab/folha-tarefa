@@ -8,8 +8,6 @@ interface GanttChartProps {
 }
 
 const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
-    // This is a simplified Gantt chart. Recharts is not ideal for Gantt charts,
-    // but we can create a functional representation.
     const { ganttData, domain } = useMemo(() => {
         if (tasks.length === 0) {
             return { ganttData: [], domain: [0, 0] };
@@ -34,23 +32,38 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                 name: task.name,
                 plannedRange: [plannedStart, plannedEnd],
                 actualProgressRange: [actualProgressStart, actualProgressStart + progressWidth],
-                task, // Pass full task for tooltip
+                task,
             };
         });
 
         return { ganttData, domain: [minDate, maxDate] };
     }, [tasks]);
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const getStatusColor = (task: Task) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const plannedEndDate = new Date(task.plannedEndDate + 'T00:00:00');
+        
+        if (task.progress === 100) return '#39ff14'; // Verde Neon (CONCLUÍDO)
+        if (today > plannedEndDate) return '#ff3131'; // Vermelho Neon (ATRASADO)
+        if (!task.actualStartDate) return '#ff8c00';  // Laranja Neon (NÃO INICIADA)
+        return '#00f3ff';                            // Ciano Neon (EM ANDAMENTO)
+    };
+
+    const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             const task = data.task as Task;
+            const color = getStatusColor(task);
+            
             return (
-                <div className="bg-dark-surface p-3 border border-dark-border rounded shadow-lg text-sm">
-                    <p className="font-bold text-neon-cyan mb-2">{task.name}</p>
-                    <p><span className="font-semibold">Planejado:</span> {task.plannedStartDate} a {task.plannedEndDate}</p>
-                    {task.actualStartDate && <p><span className="font-semibold">Real:</span> {task.actualStartDate} a {task.actualEndDate || '...'}</p>}
-                    <p><span className="font-semibold">Progresso:</span> {task.progress}%</p>
+                <div className="bg-black p-5 border-2 shadow-lg text-sm font-mono" style={{ borderColor: color, boxShadow: `0 0 15px ${color}44` }}>
+                    <p className="font-black mb-3 uppercase tracking-widest border-b-2 border-white/10 pb-3 text-base" style={{ color: color }}>{task.name}</p>
+                    <p className="text-white/90 mb-2"><span className="text-neon-orange font-black">PREVISTO:</span> {task.plannedStartDate} → {task.plannedEndDate}</p>
+                    {task.actualStartDate && <p className="text-white/90 mb-2"><span className="font-black" style={{ color: color }}>EXECUTADO:</span> {task.actualStartDate} → {task.actualEndDate || 'EM CURSO'}</p>}
+                    <p className="text-white font-black mt-4 text-2xl flex items-baseline gap-2">
+                        <span style={{ color: color }}>PROGRESSO:</span> {task.progress}%
+                    </p>
                 </div>
             );
         }
@@ -58,49 +71,51 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
     };
 
     if (tasks.length === 0) {
-        return <div className="flex items-center justify-center h-full text-gray-500">Sem tarefas para exibir no cronograma.</div>;
+        return <div className="flex items-center justify-center h-full text-white/5 font-black uppercase tracking-[15px]">Cronograma Indisponível</div>;
     }
 
     return (
-        <div style={{ width: '100%', height: 300 }}>
+        <div style={{ width: '100%', height: 400 }}>
             <ResponsiveContainer>
-                <BarChart data={ganttData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={ganttData} layout="vertical" margin={{ top: 20, right: 40, left: 10, bottom: 20 }}>
                     <XAxis 
                         type="number" 
                         domain={domain} 
                         scale="time" 
-                        stroke="#888"
+                        stroke="#2a2a30"
                         tickFormatter={(time) => new Date(time).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} 
-                        tick={{ fill: '#888' }}
+                        tick={{ fill: '#64748b', fontSize: 11, fontWeight: 900 }}
                     />
                     <YAxis 
                         type="category" 
                         dataKey="name" 
-                        stroke="#888"
-                        width={100}
-                        tick={{ fill: '#888', fontSize: 10 }}
+                        stroke="#2a2a30"
+                        width={140}
+                        tick={{ fill: '#e2e8f0', fontSize: 11, fontWeight: 'black' }}
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
                     
-                    {/* FIX: Use <g />, a valid SVG element, for the shape prop instead of <div />. */}
-                    <Bar dataKey="plannedRange" stackId="a" fill="#ff00ff" fillOpacity="0.3" shape={<g />} />
-                    <Bar dataKey="actualProgressRange" stackId="a" fill="#39ff14" shape={<g />} />
+                    <Bar dataKey="plannedRange" stackId="a" fill="transparent" shape={<g />} />
                     
-                     {/* Custom rendering using ReferenceArea to simulate Gantt bars */}
-                    {/* FIX: Combine maps and use React.Fragment with a key to resolve TypeScript error on ReferenceArea. */}
                     {ganttData.map((entry, index) => {
-                        // FIX: Define presentation attributes in an 'any' typed object to bypass incorrect recharts typings
-                        // for props like 'fill', which are valid according to documentation but cause TS errors.
+                        const statusColor = getStatusColor(entry.task);
+                        
                         const plannedAreaProps: any = {
-                          fill: '#ff00ff',
-                          fillOpacity: 0.3,
-                          stroke: '#ff00ff',
-                          strokeOpacity: 0.6,
+                          fill: '#ffffff',
+                          fillOpacity: 0.05,
+                          stroke: '#ffffff',
+                          strokeWidth: 1,
+                          strokeDasharray: '2 2'
                         };
+                        
                         const actualAreaProps: any = {
-                          fill: '#39ff14',
+                          fill: statusColor,
                           fillOpacity: 0.8,
+                          stroke: statusColor,
+                          strokeWidth: 1,
+                          style: { filter: `drop-shadow(0 0 5px ${statusColor})` }
                         };
+
                         return (
                             <React.Fragment key={`gantt-entry-${index}`}>
                                 <ReferenceArea
@@ -120,7 +135,6 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                             </React.Fragment>
                         );
                     })}
-
                 </BarChart>
             </ResponsiveContainer>
         </div>
