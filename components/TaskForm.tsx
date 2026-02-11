@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Task, Discipline, TaskLevel, OAELevel } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabaseClient';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -81,15 +82,60 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     quantityUnit: undefined,
     progress: 0,
     observations: '',
+    photo_urls: [],
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showConflictWarning, setShowConflictWarning] = useState(false);
   const [conflictCount, setConflictCount] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const fileName = `${crypto.randomUUID()}-${file.name}`;
+    const { data, error } = await supabase.storage
+        .from('task_photos')
+        .upload(fileName, file);
+
+    if (error) {
+        alert('Erro no upload da imagem: ' + error.message);
+        setIsUploading(false);
+        return;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+        .from('task_photos')
+        .getPublicUrl(data.path);
+
+    setTask(prev => ({ ...prev, photo_urls: [...(prev.photo_urls || []), publicUrl] }));
+    setIsUploading(false);
+    e.target.value = ''; // Limpa o input
+  };
+
+  const handleDeletePhoto = async (url: string) => {
+    if (!window.confirm('Tem certeza que deseja remover esta foto?')) return;
+    
+    const filePath = url.split('/task_photos/')[1];
+    
+    const { error } = await supabase.storage.from('task_photos').remove([filePath]);
+    if (error) {
+        alert('Erro ao remover a imagem: ' + error.message);
+        return;
+    }
+
+    setTask(prev => ({ ...prev, photo_urls: (prev.photo_urls || []).filter(u => u !== url) }));
+  };
 
   useEffect(() => {
     if (existingTask) {
-      setTask({ ...existingTask, observations: existingTask.observations || '' });
+      setTask({ 
+          ...existingTask, 
+          observations: existingTask.observations || '',
+          photo_urls: existingTask.photo_urls || []
+      });
     }
   }, [existingTask]);
 
@@ -98,12 +144,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     const actual = task.actualQuantity;
     let newProgress = 0;
 
-    // Calculate progress only if there's a start date and valid quantities
     if (task.actualStartDate && planned && planned > 0 && actual && actual >= 0) {
       newProgress = Math.min(100, Math.round((actual / planned) * 100));
     }
 
-    // Only update state if progress has changed to prevent infinite loops
     if (task.progress !== newProgress) {
       setTask(prev => ({ ...prev, progress: newProgress }));
     }
@@ -284,7 +328,39 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             <InputField label="Quantidade Realizada" name="actualQuantity" type="number" step="0.01" value={task.actualQuantity} onChange={handleChange} disabled={isViewer} />
         </div>
       </div>
-
+      
+      <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
+        <p className="text-[10px] font-black text-neon-cyan uppercase mb-3 tracking-widest">Registro Fotográfico</p>
+        {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+            <div className="mb-4">
+                <label htmlFor="photo-upload" className="cursor-pointer bg-dark-bg border border-dark-border text-white/50 text-xs font-bold uppercase p-3 inline-flex items-center gap-2 hover:border-neon-cyan hover:text-neon-cyan transition-colors">
+                    <span>+ Adicionar Foto</span>
+                </label>
+                <input id="photo-upload" type="file" className="hidden" onChange={handleFileUpload} accept="image/*" disabled={isUploading} />
+                {isUploading && <span className="text-neon-cyan text-xs ml-4 animate-pulse">Enviando...</span>}
+            </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {(task.photo_urls || []).map(url => (
+                <div key={url} className="relative group aspect-square">
+                    <img src={url} alt="Registro da tarefa" className="w-full h-full object-cover border-2 border-dark-border"/>
+                    {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+                        <button 
+                            type="button"
+                            onClick={() => handleDeletePhoto(url)}
+                            className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta"
+                            title="Remover foto"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    )}
+                </div>
+            ))}
+        </div>
+        {(task.photo_urls || []).length === 0 && (
+            <p className="text-center text-white/10 text-[9px] font-black uppercase tracking-widest py-4">Nenhum registro fotográfico adicionado.</p>
+        )}
+      </div>
 
       <div className={`pt-2 transition-opacity ${!task.actualStartDate ? 'opacity-40' : 'opacity-100'}`}>
           <div className="flex justify-between items-end mb-1">

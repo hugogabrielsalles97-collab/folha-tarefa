@@ -54,4 +54,5 @@ export interface Task {
   
   progress: number; // 0-100
   observations?: string;
+  photo_urls?: string[];
 }

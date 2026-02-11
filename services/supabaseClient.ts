@@ -21,6 +21,7 @@ export interface DBTask {
   actualQuantity?: number;
   quantityUnit?: UnitOfMeasurement;
   progress: number;
+  photo_urls?: string[];
 }
 
 export interface Database {

@@ -9,7 +9,7 @@ const filterTaskForDB = (task: Partial<Task>): any => {
         'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
         'actualStartDate', 'actualEndDate', 'progress',
-        'plannedQuantity', 'actualQuantity', 'quantityUnit'
+        'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls'
     ];
 
     const sanitized: any = {};
