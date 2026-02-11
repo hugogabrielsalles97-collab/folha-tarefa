@@ -86,28 +86,33 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     const end = type === 'planned' ? task.plannedEndDate : task.actualEndDate;
 
     if (!start || !end) {
-      alert("Por favor, preencha as datas de início e fim antes de consultar.");
+      alert("Por favor, preencha as datas antes de consultar a telemetria.");
+      return;
+    }
+
+    if (!process.env.API_KEY) {
+      alert("Chave de API não configurada. Ative a Telemetria no botão vermelho no topo da página.");
       return;
     }
 
     setLoadingWeather(type);
     try {
+      // Cria nova instância para garantir o uso da chave atualizada
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Resumo meteorológico para engenharia civil em Paracambi-RJ. 
+      const prompt = `Resumo técnico meteorológico focado em engenharia pesada para Paracambi-RJ. 
       Período: ${start} até ${end}. 
-      Atividade: ${task.name || 'Construção'} (${task.discipline}). 
-      Se o período for futuro, dê a previsão. Se for passado, relate o clima real. 
-      Foque em chuvas e impactos na obra. Seja muito breve (2 frases).`;
+      Atividade: ${task.name || 'Obras de Infraestrutura'}. 
+      Relate riscos de chuva intensa e janelas de execução. Máximo 250 caracteres.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt,
+        contents: [{ parts: [{ text: prompt }] }],
         config: { 
           tools: [{ googleSearch: {} }] 
         }
       });
 
-      const weatherText = response.text || "Relatório meteorológico não gerado.";
+      const weatherText = response.text || "Relatório meteorológico indisponível.";
       const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
       setTask(prev => ({ 
@@ -119,15 +124,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         [type]: sources
       }));
     } catch (error: any) {
-      console.error("DEBUG METEO:", error);
-      const msg = error?.message || "Erro desconhecido";
+      console.error("METEO_ERROR:", error);
+      const msg = error?.message || "";
       
-      if (msg.includes("Search tool is not enabled")) {
-        alert("ALERTA: A ferramenta de busca (Google Search) não está habilitada nesta chave de API. Verifique as configurações no Google AI Studio.");
-      } else if (msg.includes("API_KEY_INVALID")) {
-        alert("ERRO: Chave de API inválida ou sem permissões suficientes.");
+      if (msg.includes("API Key not set") || msg.includes("must be set")) {
+        alert("CHAVE NÃO CONFIGURADA: Use o botão 'Ativar Telemetria' no topo da página e selecione um projeto pago no Google AI Studio.");
+      } else if (msg.includes("Search tool is not enabled")) {
+        alert("BUSCA DESATIVADA: A ferramenta de busca Google Search não está habilitada para esta chave de API.");
       } else {
-        alert(`FALHA NA TELEMETRIA: ${msg}`);
+        alert(`FALHA TÉCNICA: ${msg}`);
       }
     } finally {
       setLoadingWeather(null);
@@ -154,12 +159,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const renderSources = (sources: any[]) => {
     if (!sources || sources.length === 0) return null;
     return (
-      <div className="mt-1 flex flex-wrap gap-1.5 opacity-40 hover:opacity-100 transition-opacity">
-        <span className="text-[6px] font-black text-white uppercase">Docs:</span>
+      <div className="mt-2 flex flex-wrap gap-2 pt-2 border-t border-white/5">
+        <span className="text-[7px] font-black text-white/20 uppercase">Grounding:</span>
         {sources.map((chunk, idx) => (
           chunk.web && (
-            <a key={idx} href={chunk.web.uri} target="_blank" rel="noopener noreferrer" className="text-[6px] text-neon-cyan hover:text-white truncate max-w-[80px]">
-              [{idx + 1}] {chunk.web.title || 'ref'}
+            <a key={idx} href={chunk.web.uri} target="_blank" rel="noopener noreferrer" className="text-[7px] text-neon-cyan hover:underline truncate max-w-[100px]">
+              {chunk.web.title || 'Referência'}
             </a>
           )
         ))}
@@ -171,11 +176,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     <form onSubmit={handleSubmit} className="space-y-3 max-h-[85vh] overflow-y-auto pr-3 custom-scrollbar">
       <div className="sticky top-0 bg-dark-surface z-10 pb-4 border-b border-dark-border mb-4">
         <h2 className="text-lg font-black text-white uppercase tracking-[4px]">
-          Controle <span className="text-neon-orange">Técnico</span>
+          Ficha de <span className="text-neon-orange">Registro Técnico</span>
         </h2>
         <div className="flex items-center gap-2 mt-1">
           <div className="h-1 w-1 rounded-full bg-neon-green animate-pulse"></div>
-          <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">Estação: Paracambi - RJ</p>
+          <p className="text-[7px] font-black text-white/40 uppercase tracking-widest leading-none">Localização: Paracambi - RJ (Sincronizado)</p>
         </div>
       </div>
       
@@ -195,53 +200,53 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           </div>
       </div>
 
-      <InputField label="Atividade" name="name" value={task.name} onChange={handleChange} placeholder="Ex: Terraplanagem Setor A..." />
+      <InputField label="Nome da Atividade" name="name" value={task.name} onChange={handleChange} placeholder="Ex: Terraplanagem Setor 05..." />
 
-      <div className="space-y-4 pt-2">
-          {/* Módulo Planejado */}
-          <div className="bg-white/[0.02] p-3 border-l-2 border-neon-orange">
-            <div className="flex justify-between items-center mb-3">
-                <p className="text-[8px] font-black text-neon-orange uppercase tracking-widest">Cronograma Previsto</p>
+      <div className="space-y-4 pt-4 mt-2">
+          {/* Planejado */}
+          <div className="bg-white/[0.02] p-4 border border-white/5 border-l-2 border-l-neon-orange relative">
+            <div className="flex justify-between items-center mb-4">
+                <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest">Previsão e Planejamento</p>
                 <button 
                   type="button" 
                   onClick={() => fetchWeather('planned')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-orange text-[7px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-20"
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-dark-bg border border-neon-orange text-[8px] font-black uppercase text-neon-orange hover:bg-neon-orange hover:text-black transition-all disabled:opacity-20 active:scale-95"
                 >
-                    {loadingWeather === 'planned' ? 'Sincronizando...' : <><WeatherIcon /> Consultar Previsão</>}
+                    {loadingWeather === 'planned' ? 'Conectando...' : <><WeatherIcon /> Consultar Clima</>}
                 </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <InputField label="Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} />
-              <InputField label="Término" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Início ETA" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} />
+              <InputField label="Fim ETA" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} />
             </div>
             {task.plannedWeather && (
-                <div className="mt-2 p-2 bg-black/40 border border-white/5">
+                <div className="mt-3 p-3 bg-black/60 border-l-2 border-neon-orange">
                     <p className="font-mono text-[9px] text-white/80 leading-relaxed italic">"{task.plannedWeather}"</p>
                     {renderSources(weatherSources.planned)}
                 </div>
             )}
           </div>
 
-          {/* Módulo Realizado */}
-          <div className="bg-white/[0.02] p-3 border-l-2 border-neon-green">
-            <div className="flex justify-between items-center mb-3">
-                <p className="text-[8px] font-black text-neon-green uppercase tracking-widest">Execução em Campo</p>
+          {/* Realizado */}
+          <div className="bg-white/[0.02] p-4 border border-white/5 border-l-2 border-l-neon-green">
+            <div className="flex justify-between items-center mb-4">
+                <p className="text-[9px] font-black text-neon-green uppercase tracking-widest">Execução e Histórico</p>
                 <button 
                   type="button" 
                   onClick={() => fetchWeather('actual')}
                   disabled={!!loadingWeather || isViewer}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-dark-bg border border-neon-green text-[7px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-20"
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-dark-bg border border-neon-green text-[8px] font-black uppercase text-neon-green hover:bg-neon-green hover:text-black transition-all disabled:opacity-20 active:scale-95"
                 >
-                    {loadingWeather === 'actual' ? 'Buscando...' : <><WeatherIcon /> Histórico Real</>}
+                    {loadingWeather === 'actual' ? 'Consultando...' : <><WeatherIcon /> Histórico Real</>}
                 </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} />
               <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} />
             </div>
             {task.actualWeather && (
-                <div className="mt-2 p-2 bg-black/40 border border-white/5">
+                <div className="mt-3 p-3 bg-black/60 border-l-2 border-neon-green">
                     <p className="font-mono text-[9px] text-white/80 leading-relaxed italic">"{task.actualWeather}"</p>
                     {renderSources(weatherSources.actual)}
                 </div>
@@ -249,10 +254,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           </div>
       </div>
 
-      <div className="pt-4 border-t border-dark-border mt-4">
-          <div className="flex justify-between mb-1.5">
-            <label className="text-[8px] font-black text-neon-cyan uppercase">Progresso da Tarefa</label>
-            <span className="text-[10px] font-mono text-neon-cyan">{task.progress}%</span>
+      <div className="pt-6 border-t border-dark-border mt-6">
+          <div className="flex justify-between mb-2">
+            <label className="text-[9px] font-black text-neon-cyan uppercase tracking-widest">Avanço Físico</label>
+            <span className="text-[11px] font-mono text-neon-cyan">{task.progress}%</span>
           </div>
           <input 
             type="range" 
@@ -264,13 +269,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           />
       </div>
 
-      <TextareaField label="Observações de Campo" name="observations" value={task.observations} onChange={handleChange} placeholder="Relate impedimentos, condições do solo ou atrasos..." />
+      <TextareaField label="Observações de Campo" name="observations" value={task.observations} onChange={handleChange} placeholder="Relate impedimentos, condições do terreno ou chuvas que impactaram a produção..." />
 
-      <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-dark-surface z-10 border-t border-dark-border py-4 mt-6">
-        <button type="button" onClick={onCancel} className="text-white/30 font-black text-[9px] uppercase tracking-widest hover:text-white transition-colors px-4">Sair</button>
+      <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-dark-surface z-10 border-t border-dark-border py-4 mt-8">
+        <button type="button" onClick={onCancel} className="text-white/30 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors px-6">Fechar</button>
         {!isViewer && (
-            <button type="submit" className="bg-neon-cyan text-black font-black py-2.5 px-10 rounded-none uppercase text-[10px] tracking-[2px] hover:bg-white shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all active:scale-95">
-              Salvar Registro
+            <button type="submit" className="bg-neon-cyan text-black font-black py-3 px-12 rounded-none uppercase text-[10px] tracking-[3px] hover:bg-white shadow-[0_0_20px_rgba(0,243,255,0.4)] transition-all active:scale-95">
+              Confirmar Registro
             </button>
         )}
       </div>
