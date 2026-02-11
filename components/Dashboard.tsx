@@ -186,23 +186,26 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask }
         title="LISTA DE TAREFAS"
         headerContent={
           <div className="flex flex-wrap items-end gap-3 print:hidden">
-            <div className="flex flex-col">
-              <label className="text-[10px] font-black uppercase text-white/40 mb-1">Datas Planejadas</label>
-              <div className="flex gap-1">
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan" />
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan" />
+            <div className="flex gap-2">
+              <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-neon-cyan uppercase tracking-tighter mb-0.5">Início (prev)</span>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan h-[34px]" />
+              </div>
+              <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-neon-cyan uppercase tracking-tighter mb-0.5">Fim (prev)</span>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan h-[34px]" />
               </div>
             </div>
             <div className="flex flex-col">
               <label className="text-[10px] font-black uppercase text-white/40 mb-1">Disciplina</label>
-              <select value={disciplineFilter} onChange={handleDisciplineChange} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan uppercase font-bold">
+              <select value={disciplineFilter} onChange={handleDisciplineChange} className="bg-dark-bg border border-dark-border p-2 text-xs text-white outline-none focus:border-neon-cyan uppercase font-bold h-[34px]">
                   <option value="">TODAS</option>
                   {Object.values(Discipline).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <button
               onClick={() => window.print()}
-              className="bg-eng-blue text-black font-black py-2 px-5 text-xs uppercase border border-black hover:opacity-80 transition-opacity"
+              className="bg-eng-blue text-black font-black py-2 px-5 text-xs uppercase border border-black hover:opacity-80 transition-opacity h-[34px]"
             >
               Imprimir
             </button>
