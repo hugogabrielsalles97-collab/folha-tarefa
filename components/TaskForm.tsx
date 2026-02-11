@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
-import { Task, Discipline, TaskLevel } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Task, Discipline, TaskLevel, OAELevel } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleGenAI } from "@google/genai";
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -12,14 +11,7 @@ interface TaskFormProps {
   allTasks: Task[];
 }
 
-// Ícone de clima simples
-const WeatherIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-    </svg>
-);
-
-const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder }: { label: string, name: string, value?: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string }) => {
+const InputField = ({ label, name, value, onChange, type = 'text', error, disabled, placeholder, errorType }: { label: string, name: string, value?: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, error?: string, disabled?: boolean, placeholder?: string, errorType?: 'default' | 'critical' }) => {
     return (
         <div className="mb-3">
           <label htmlFor={name} className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">{label}</label>
@@ -31,9 +23,13 @@ const InputField = ({ label, name, value, onChange, type = 'text', error, disabl
             onChange={onChange} 
             disabled={disabled}
             placeholder={placeholder}
-            className={`w-full border ${error ? 'border-neon-magenta' : 'border-dark-border'} p-2 font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`} 
+            className={`w-full border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`} 
           />
-          {error && <p className="text-neon-magenta text-[8px] mt-1 font-black uppercase tracking-widest">{error}</p>}
+          {error && (
+            <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink shadow-neon-orange' : 'text-neon-magenta'} text-[8px] mt-1 font-black uppercase tracking-widest`}>
+              {error}
+            </p>
+          )}
         </div>
     );
 };
@@ -46,7 +42,7 @@ const TextareaField = ({ label, name, value, onChange, error, disabled, placehol
         name={name} 
         value={value || ''} 
         onChange={onChange} 
-        disabled={disabled}
+        disabled={disabled} 
         placeholder={placeholder}
         rows={3}
         className={`w-full bg-dark-bg border ${error ? 'border-neon-magenta' : 'border-dark-border'} p-2 text-white font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors placeholder:text-white/10 resize-none`} 
@@ -55,9 +51,7 @@ const TextareaField = ({ label, name, value, onChange, error, disabled, placehol
     </div>
 );
 
-// Improved SelectField props to ensure children are recognized correctly and value accepts enums/strings
-// This fixes the 'children' missing error by ensuring proper prop matching
-const SelectField = ({ label, name, value, onChange, children, error, disabled }: { label: string, name: string, value: any, onChange: (e: React.ChangeEvent<any>) => void, children: React.ReactNode, error?: string, disabled?: boolean }) => (
+const SelectField = ({ label, name, value, onChange, children, error, disabled, errorType }: { label: string, name: string, value: any, onChange: (e: React.ChangeEvent<any>) => void, children?: React.ReactNode, error?: string, disabled?: boolean, errorType?: 'default' | 'critical' }) => (
      <div className="mb-3">
       <label htmlFor={name} className="block text-[8px] font-black text-neon-cyan uppercase tracking-widest mb-1">{label}</label>
       <select 
@@ -66,11 +60,15 @@ const SelectField = ({ label, name, value, onChange, children, error, disabled }
         value={value || ''} 
         onChange={onChange} 
         disabled={disabled} 
-        className={`w-full bg-dark-bg border ${error ? 'border-neon-magenta' : 'border-dark-border'} p-2 text-white font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 appearance-none transition-colors`}
+        className={`w-full bg-dark-bg border ${error ? (errorType === 'critical' ? 'border-neon-orange shadow-neon-orange' : 'border-neon-magenta') : 'border-dark-border'} p-2 text-white font-mono text-sm focus:outline-none focus:border-neon-cyan disabled:opacity-30 appearance-none transition-colors`}
       >
           {children}
       </select>
-      {error && <p className="text-neon-magenta text-[8px] mt-1 font-black uppercase tracking-widest">{error}</p>}
+      {error && (
+        <p className={`${errorType === 'critical' ? 'text-neon-orange animate-fast-blink shadow-neon-orange' : 'text-neon-magenta'} text-[8px] mt-1 font-black uppercase tracking-widest`}>
+          {error}
+        </p>
+      )}
      </div>
 );
 
@@ -92,14 +90,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     plannedEndDate: '',
     actualStartDate: '',
     actualEndDate: '',
-    plannedWeather: '',
-    actualWeather: '',
     progress: 0,
     observations: '',
   });
   
-  const [loadingWeather, setLoadingWeather] = useState<'planned' | 'actual' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorType, setErrorType] = useState<'default' | 'critical'>('default');
+  const [showConflictWarning, setShowConflictWarning] = useState(false);
+  const [conflictCount, setConflictCount] = useState(0);
 
   useEffect(() => {
     if (existingTask) {
@@ -107,45 +105,66 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     }
   }, [existingTask]);
 
-  const fetchWeather = async (type: 'planned' | 'actual') => {
-    const start = type === 'planned' ? task.plannedStartDate : task.actualStartDate;
-    const end = type === 'planned' ? task.plannedEndDate : task.actualEndDate;
-
-    if (!start || !end) {
-      alert("Por favor, preencha as datas para consultar o clima.");
-      return;
-    }
-
-    setLoadingWeather(type);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Resumo técnico de clima para Paracambi-RJ de ${start} a ${end}. Atividade: ${task.name || 'Obra'}. Relate chuvas e impacto na execução. Seja breve (2 frases).`;
-
-      // Simplified contents to string as per current guidelines for text generation
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: { tools: [{ googleSearch: {} }] }
-      });
-
-      // Using the .text property directly as per the latest @google/genai SDK
-      const weatherText = response.text || "Sem dados.";
-      setTask(prev => ({ 
-        ...prev, 
-        [type === 'planned' ? 'plannedWeather' : 'actualWeather']: weatherText 
-      }));
-    } catch (error) {
-      console.error("Erro clima:", error);
-    } finally {
-      setLoadingWeather(null);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     if (isViewer) return;
     const { name, value } = e.target;
-    setTask(prev => ({ ...prev, [name]: value }));
+    setTask(prev => {
+        const updated = { ...prev, [name]: value };
+        if (name === 'discipline') {
+            updated.level = '';
+            updated.name = '';
+            updated.obraDeArte = '';
+            updated.apoio = '';
+            updated.vao = '';
+            updated.frente = '';
+            updated.corte = '';
+        }
+        if (name === 'level' && updated.discipline === Discipline.OAE) {
+            if (value !== OAELevel.SUPERESTRUTURA) {
+                updated.vao = '';
+            }
+            if (value !== OAELevel.FUNDACOES && value !== OAELevel.MESOESTRUTURA) {
+                updated.apoio = '';
+            }
+        }
+        return updated;
+    });
+    // Limpar avisos ao editar campos relevantes
+    setShowConflictWarning(false);
+    if (errors[name]) {
+        setErrors(prev => {
+            const n = { ...prev };
+            delete n[name];
+            return n;
+        });
+    }
   };
+
+  const getConflictingTasksCount = useMemo(() => {
+    if (!task.name || !task.plannedStartDate || !task.plannedEndDate) return 0;
+    
+    return allTasks.filter(t => {
+        if (existingTask && t.id === existingTask.id) return false;
+
+        const sameName = t.name.trim().toLowerCase() === task.name.trim().toLowerCase();
+        let sameLocation = false;
+        if (task.discipline === Discipline.OAE) {
+            sameLocation = t.obraDeArte === task.obraDeArte && t.apoio === task.apoio && t.vao === task.vao;
+        } else {
+            sameLocation = t.frente === task.frente && t.corte === task.corte;
+        }
+
+        const tStart = t.plannedStartDate;
+        const tEnd = t.plannedEndDate;
+        const taskStart = task.plannedStartDate;
+        const taskEnd = task.plannedEndDate;
+
+        // Intervalo de sobreposição
+        const overlap = (taskStart <= tEnd) && (tStart <= taskEnd);
+
+        return sameName && sameLocation && overlap;
+    }).length;
+  }, [task, allTasks, existingTask]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -153,14 +172,30 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     if (!task.level) newErrors.level = 'Obrigatório.';
     if (!task.plannedStartDate) newErrors.plannedStartDate = 'Obrigatório.';
     if (!task.plannedEndDate) newErrors.plannedEndDate = 'Obrigatório.';
+    
+    if (task.actualEndDate && (task.progress || 0) < 100) {
+        newErrors.actualEndDate = 'Avanço deve ser 100% para registrar término.';
+    }
+
     setErrors(newErrors);
+    setErrorType('default');
     return Object.keys(newErrors).length === 0;
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewer) return;
+    
+    // 1. Validação básica (campos vazios, etc)
     if (!validate()) return;
+
+    // 2. Verificação de conflito se não foi confirmado ainda
+    if (!showConflictWarning && getConflictingTasksCount > 0) {
+        setConflictCount(getConflictingTasksCount);
+        setShowConflictWarning(true);
+        // Scroll para o aviso
+        return;
+    }
 
     const taskToSave: Task = {
       id: existingTask?.id || crypto.randomUUID(),
@@ -171,7 +206,35 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   };
   
   const levelsForDiscipline = DISCIPLINE_LEVELS[task.discipline] || [];
-  const selectableTaskNames = task.discipline === Discipline.OAE && task.level ? OAE_TASK_NAMES_BY_LEVEL[task.level] : null;
+  const oaeTaskOptions = (task.discipline === Discipline.OAE && task.level) ? OAE_TASK_NAMES_BY_LEVEL[task.level] : null;
+  
+  const isOAE = task.discipline === Discipline.OAE;
+  const isOAESuper = isOAE && task.level === OAELevel.SUPERESTRUTURA;
+  const isOAEFundOrMeso = isOAE && (task.level === OAELevel.FUNDACOES || task.level === OAELevel.MESOESTRUTURA);
+
+  const getProgressStyles = () => {
+    const progress = task.progress || 0;
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const plannedEndDate = task.plannedEndDate ? new Date(task.plannedEndDate + 'T00:00:00') : null;
+
+    let color = '#00f3ff'; 
+
+    if (progress === 100) {
+      color = '#39ff14'; 
+    } else if (plannedEndDate && today > plannedEndDate) {
+      color = '#ff3131'; 
+    } else if (progress === 0) {
+      color = '#ff8c00'; 
+    }
+
+    return {
+      background: `linear-gradient(to right, ${color} 0%, ${color} ${progress}%, #0a0a0c ${progress}%, #0a0a0c 100%)`,
+      color
+    };
+  };
+
+  const progressStyle = getProgressStyles();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -180,71 +243,139 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       </h2>
       
       <div className="grid grid-cols-2 gap-3">
-        {/* Fix for line 182: SelectField now accepts children and its value type is more flexible */}
         <SelectField label="Disciplina" name="discipline" value={task.discipline} onChange={handleChange} disabled={isProductionUser || isViewer}>
             {Object.values(Discipline).map(d => <option key={d} value={d} className="bg-dark-surface text-white">{d}</option>)}
         </SelectField>
         
-        {/* Fix for line 186: SelectField now accepts children and handles task.level union type properly */}
         <SelectField label="Nível Operacional" name="level" value={task.level} onChange={handleChange} error={errors.level} disabled={isProductionUser || isViewer}>
             <option value="" className="bg-dark-surface text-white">Selecionar</option>
             {levelsForDiscipline.map(l => <option key={l} value={l} className="bg-dark-surface text-white">{l}</option>)}
         </SelectField>
       </div>
 
-      <InputField 
-          label="Descrição Atividade" 
-          name="name" 
-          value={task.name} 
-          onChange={handleChange} 
-          error={errors.name} 
-          disabled={isProductionUser || isViewer}
-      />
+      <div className="bg-white/5 p-3 border border-dark-border">
+        {isOAE ? (
+            <div className="grid grid-cols-2 gap-2">
+                <SelectField label="OAE" name="obraDeArte" value={task.obraDeArte} onChange={handleChange} disabled={isProductionUser || isViewer}>
+                    <option value="">---</option>
+                    {OBRAS_DE_ARTE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </SelectField>
+                
+                {isOAEFundOrMeso && (
+                    <SelectField label="Apoio" name="apoio" value={task.apoio} onChange={handleChange} disabled={isProductionUser || isViewer}>
+                        <option value="">---</option>
+                        {APOIOS_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                    </SelectField>
+                )}
+
+                {isOAESuper && (
+                    <SelectField label="Vão" name="vao" value={task.vao} onChange={handleChange} disabled={isProductionUser || isViewer}>
+                        <option value="">---</option>
+                        {VAOS_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
+                    </SelectField>
+                )}
+            </div>
+        ) : (
+            <div className="grid grid-cols-2 gap-2">
+                <InputField label="Frente" name="frente" value={task.frente} onChange={handleChange} disabled={isProductionUser || isViewer} placeholder="Ex: KM 12+500" />
+                <InputField label="Corte" name="corte" value={task.corte} onChange={handleChange} disabled={isProductionUser || isViewer} placeholder="Ex: C-01" />
+            </div>
+        )}
+      </div>
+
+      {oaeTaskOptions ? (
+          <SelectField 
+            label="Descrição Atividade" 
+            name="name" 
+            value={task.name} 
+            onChange={handleChange} 
+            error={errors.name} 
+            errorType={errorType}
+            disabled={isProductionUser || isViewer}
+          >
+              <option value="">Selecione a tarefa técnica</option>
+              {oaeTaskOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </SelectField>
+      ) : (
+          <InputField 
+              label="Descrição Atividade" 
+              name="name" 
+              value={task.name} 
+              onChange={handleChange} 
+              error={errors.name} 
+              errorType={errorType}
+              disabled={isProductionUser || isViewer}
+              placeholder="Digite a atividade..."
+          />
+      )}
 
       <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
-          {/* Planejado */}
           <div className="bg-white/[0.02] p-3 border-l-2 border-neon-orange">
             <div className="flex justify-between items-center mb-2">
                 <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest">Cronograma Planejado</p>
-                <button type="button" onClick={() => fetchWeather('planned')} disabled={isViewer || !!loadingWeather} className="text-[7px] text-neon-orange border border-neon-orange px-2 py-0.5 hover:bg-neon-orange hover:text-black transition-all">
-                    {loadingWeather === 'planned' ? '...' : 'Previsão'}
-                </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
               <InputField label="Fim" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
             </div>
-            {task.plannedWeather && <p className="text-[8px] text-white/40 italic font-mono mt-1">"{task.plannedWeather}"</p>}
           </div>
 
-          {/* Real */}
           <div className="bg-white/[0.02] p-3 border-l-2 border-neon-green">
             <div className="flex justify-between items-center mb-2">
                 <p className="text-[9px] font-black text-neon-green uppercase tracking-widest">Execução Real</p>
-                <button type="button" onClick={() => fetchWeather('actual')} disabled={isViewer || !!loadingWeather} className="text-[7px] text-neon-green border border-neon-green px-2 py-0.5 hover:bg-neon-green hover:text-black transition-all">
-                    {loadingWeather === 'actual' ? '...' : 'Histórico'}
-                </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
-              <InputField label="Término Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} />
+              <InputField label="Término Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
             </div>
-            {task.actualWeather && <p className="text-[8px] text-white/40 italic font-mono mt-1">"{task.actualWeather}"</p>}
           </div>
       </div>
 
       <div className="border-t border-dark-border pt-4">
-          <label className="text-[9px] font-black text-neon-cyan uppercase tracking-widest mb-1 block">Avanço Físico: {task.progress}%</label>
-          <input type="range" min="0" max="100" value={task.progress || 0} onChange={(e) => setTask(prev => ({...prev, progress: Number(e.target.value)}))} disabled={isViewer} className="w-full h-1 bg-dark-bg appearance-none cursor-pointer accent-neon-cyan" />
+          <label 
+            className="text-[9px] font-black uppercase tracking-widest mb-1 block transition-colors duration-300"
+            style={{ color: progressStyle.color }}
+          >
+            Avanço Físico: {task.progress}%
+          </label>
+          <input 
+            type="range" 
+            min="0" 
+            max="100" 
+            value={task.progress || 0} 
+            onChange={(e) => setTask(prev => ({...prev, progress: Number(e.target.value)}))} 
+            disabled={isViewer} 
+            className="w-full h-1 appearance-none cursor-pointer rounded-full outline-none transition-all duration-300 border border-dark-border/50" 
+            style={{
+              background: progressStyle.background
+            }}
+          />
       </div>
 
       <TextareaField label="Observações" name="observations" value={task.observations} onChange={handleChange} disabled={isViewer} placeholder="Notas de campo..." />
 
+      {/* Alerta de Conflito */}
+      {showConflictWarning && (
+          <div className="border-2 border-neon-orange bg-dark-bg p-4 shadow-neon-orange animate-fast-blink my-4">
+              <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 bg-neon-orange rounded-full"></div>
+                  <h4 className="text-neon-orange font-black uppercase text-[10px] tracking-widest">Alerta de Conflito de Equipes</h4>
+              </div>
+              <p className="text-white text-[9px] uppercase font-bold tracking-tight leading-relaxed">
+                  Detectamos que já possui <span className="text-neon-orange text-lg px-1">{conflictCount}</span> registros de equipes alocadas neste mesmo período para esta atividade e local.
+              </p>
+              <p className="text-white/40 text-[8px] uppercase font-black mt-2">Deseja prosseguir com o registro múltiplo?</p>
+          </div>
+      )}
+
       <div className="flex justify-end gap-3 pt-6 border-t border-dark-border">
         <button type="button" onClick={onCancel} className="text-white/30 font-black text-[9px] uppercase tracking-widest hover:text-white">{isViewer ? 'Fechar' : 'Cancelar'}</button>
         {!isViewer && (
-            <button type="submit" className="bg-neon-cyan text-black font-black py-2 px-10 uppercase text-[10px] tracking-widest hover:bg-white shadow-neon-cyan">
-              Salvar Registro
+            <button 
+                type="submit" 
+                className={`${showConflictWarning ? 'bg-neon-orange shadow-neon-orange text-black' : 'bg-neon-cyan shadow-neon-cyan text-black'} font-black py-2 px-10 uppercase text-[10px] tracking-widest hover:bg-white transition-all`}
+            >
+              {showConflictWarning ? 'Confirmar e Salvar' : 'Salvar Registro'}
             </button>
         )}
       </div>
