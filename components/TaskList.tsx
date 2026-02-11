@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task } from '../types';
-import { EditIcon, DeleteIcon, CameraIcon } from './icons';
+import { EditIcon, DeleteIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaskListProps {
@@ -50,14 +50,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   return (
     <div className="grid grid-cols-12 gap-y-4 md:gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
       <div className="col-span-12 md:col-span-3">
-        <div className="flex items-center gap-2">
-            <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors print:text-black print:font-bold">{task.name.toUpperCase()}</p>
-            {task.evidencePhoto && (
-                <span title="Possui evidência fotográfica" className="text-neon-magenta animate-pulse">
-                    <CameraIcon />
-                </span>
-            )}
-        </div>
+        <p className="font-black text-white text-[13px] leading-tight tracking-tight group-hover:text-neon-cyan transition-colors print:text-black print:font-bold">{task.name.toUpperCase()}</p>
         <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
 
