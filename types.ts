@@ -44,4 +44,5 @@ export interface Task {
   actualEndDate?: string; // YYYY-MM-DD
   progress: number; // 0-100
   observations?: string;
+  evidencePhoto?: string; // Base64 string
 }

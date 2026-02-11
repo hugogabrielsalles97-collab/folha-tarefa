@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, Discipline, TaskLevel } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { CameraIcon } from './icons';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -78,6 +79,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const { role } = useAuth();
   const isProductionUser = role === 'PRODUÇÃO';
   const isViewer = role === 'VIEWER';
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [task, setTask] = useState<Omit<Task, 'id' | 'progress'> & { id?: string, progress?: number }>({
     name: '',
@@ -94,6 +96,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     actualEndDate: '',
     progress: 0,
     observations: '',
+    evidencePhoto: '',
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -103,13 +106,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     if (existingTask) {
       setTask({
         ...existingTask,
-        observations: existingTask.observations || ''
+        observations: existingTask.observations || '',
+        evidencePhoto: existingTask.evidencePhoto || '',
       });
     }
   }, [existingTask]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    if (isViewer) return; // Segurança extra
+    if (isViewer) return;
 
     const { name, value } = e.target;
     
@@ -132,6 +136,23 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     if(errors[name]) {
         setErrors(prev => ({...prev, [name]: ''}));
     }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTask(prev => ({ ...prev, evidencePhoto: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    if (isViewer) return;
+    setTask(prev => ({ ...prev, evidencePhoto: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,8 +216,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const selectableTaskNames = task.discipline === Discipline.OAE && task.level ? OAE_TASK_NAMES_BY_LEVEL[task.level] : null;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <h2 className="text-lg font-black text-white uppercase tracking-[4px] border-b border-dark-border pb-2 mb-4">
+    <form onSubmit={handleSubmit} className="space-y-3 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+      <h2 className="text-lg font-black text-white uppercase tracking-[4px] border-b border-dark-border pb-2 mb-4 sticky top-0 bg-dark-surface z-10">
         {isViewer ? 'Detalhes da' : existingTask ? 'Atualizar' : 'Registrar'} <span className="text-neon-orange">Tarefa</span>
       </h2>
       
@@ -254,7 +275,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       )}
 
       <div className="border-t border-dark-border pt-4 mt-2 space-y-4">
-          {/* Cronograma Planejado */}
           <div>
             <p className="text-[9px] font-black text-neon-orange uppercase tracking-widest mb-2">Cronograma Planejado</p>
             <div className="grid grid-cols-2 gap-4">
@@ -263,7 +283,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             </div>
           </div>
 
-          {/* Execução Real */}
           <div>
             <p className="text-[9px] font-black text-neon-green uppercase tracking-widest mb-2">Execução Real</p>
             <div className="grid grid-cols-2 gap-4">
@@ -281,6 +300,51 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             </div>
           </div>
           <input type="range" min="0" max="100" value={task.progress || 0} onChange={handleProgressChange} disabled={isViewer} className="w-full h-1 bg-dark-bg appearance-none cursor-pointer accent-neon-cyan disabled:cursor-not-allowed disabled:opacity-30" />
+      </div>
+
+      {/* Seção de Evidência Fotográfica */}
+      <div className="border-t border-dark-border pt-4">
+        <p className="text-[9px] font-black text-neon-magenta uppercase tracking-widest mb-2">Evidência Fotográfica</p>
+        
+        {task.evidencePhoto ? (
+          <div className="relative group overflow-hidden border border-neon-magenta/30 bg-black/40 p-2">
+            <img 
+              src={task.evidencePhoto} 
+              alt="Evidência técnica" 
+              className="w-full h-48 object-cover border border-white/10"
+            />
+            {!isViewer && (
+              <button 
+                type="button" 
+                onClick={removePhoto}
+                className="absolute top-4 right-4 bg-neon-red text-black p-1 text-[8px] font-black uppercase tracking-widest shadow-neon-red opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                Remover Foto
+              </button>
+            )}
+            <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1">
+              <span className="text-[7px] font-mono text-neon-magenta uppercase">IMAGEM_ANEXADA.JPEG</span>
+            </div>
+          </div>
+        ) : (
+          <div 
+            onClick={() => !isViewer && fileInputRef.current?.click()}
+            className={`h-24 border-2 border-dashed border-dark-border flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-neon-magenta/50 hover:bg-neon-magenta/5 transition-all ${isViewer ? 'opacity-30 cursor-not-allowed' : ''}`}
+          >
+            <CameraIcon />
+            <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">
+              {isViewer ? 'Sem Imagem Registrada' : 'Capturar Evidência Técnica'}
+            </span>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept="image/*" 
+              capture="environment" 
+              onChange={handlePhotoUpload} 
+              className="hidden"
+            />
+          </div>
+        )}
       </div>
 
       <div className="border-t border-dark-border pt-4">
@@ -312,7 +376,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-4">
+      <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-dark-surface z-10 py-2 border-t border-dark-border mt-4">
         <button type="button" onClick={onCancel} className="text-white/30 font-black text-[9px] uppercase tracking-widest hover:text-white transition-colors">
             {isViewer ? 'Fechar' : 'Cancelar'}
         </button>
