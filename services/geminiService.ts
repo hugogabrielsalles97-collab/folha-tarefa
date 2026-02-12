@@ -1,12 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// FIX: Adicionada verificação de robustez para garantir que a chave da API exista.
-if (!process.env.API_KEY) {
-  throw new Error("A chave da API do Gemini não foi encontrada. Configure a variável de ambiente API_KEY.");
+// A chave da API do Gemini é fornecida diretamente para garantir a funcionalidade.
+const GEMINI_API_KEY = "AIzaSyA2Z4TEqd5N_zGv-Wh3VNvUmCua9obd82U";
+
+if (!GEMINI_API_KEY) {
+  throw new Error("A chave da API do Gemini não foi encontrada. A aplicação não pode funcionar sem ela.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 
 const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
