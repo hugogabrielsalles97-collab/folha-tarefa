@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, DBTask } from '../services/supabaseClient';
 import { Task } from '../types';
@@ -11,7 +10,7 @@ const filterTaskForDB = (task: Partial<Task>): any => {
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
         'actualStartDate', 'actualEndDate', 'progress',
         'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls',
-        'plannedWeather', 'actualWeather', 'observations', 'resources'
+        'plannedWeather', 'actualWeather', 'observations'
     ];
 
     const sanitized: any = {};
@@ -43,6 +42,12 @@ export function useSupabaseTasks() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async () => {
+    if (!supabase) {
+        setError("ERRO DE CONFIGURAÇÃO: A conexão com o banco de dados não pôde ser estabelecida.");
+        setLoading(false);
+        return;
+    }
+
     setError(null);
     try {
       const { data, error: fetchError } = await supabase
@@ -61,6 +66,12 @@ export function useSupabaseTasks() {
   }, [loading]);
 
   useEffect(() => {
+    if (!supabase) {
+      setError("ERRO DE CONFIGURAÇÃO: A conexão com o banco de dados não pôde ser estabelecida.");
+      setLoading(false);
+      return;
+    }
+
     fetchTasks();
     const channel = supabase
       .channel('realtime tasks')
@@ -70,11 +81,14 @@ export function useSupabaseTasks() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [fetchTasks]);
   
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'created_at'>) => {
+    if (!supabase) throw new Error("A conexão com o banco de dados não está configurada.");
     const taskToInsert = filterTaskForDB(task);
     const { error: insertError } = await supabase.from('tasks').insert([taskToInsert]);
     if (insertError) {
@@ -84,6 +98,7 @@ export function useSupabaseTasks() {
   }, []);
 
   const updateTask = useCallback(async (task: Task) => {
+    if (!supabase) throw new Error("A conexão com o banco de dados não está configurada.");
     const taskToUpdate = filterTaskForDB(task);
     const { error: updateError } = await supabase.from('tasks').update(taskToUpdate).eq('id', task.id);
     if (updateError) {
@@ -93,6 +108,7 @@ export function useSupabaseTasks() {
   }, []);
 
   const deleteTask = useCallback(async (taskId: string) => {
+    if (!supabase) throw new Error("A conexão com o banco de dados não está configurada.");
     const { error: deleteError } = await supabase.from('tasks').delete().eq('id', taskId);
     if (deleteError) {
         throw new Error(deleteError.message);

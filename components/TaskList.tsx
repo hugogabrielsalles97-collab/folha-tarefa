@@ -15,7 +15,6 @@ interface TaskListProps {
 
 const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (taskId: string) => void; onViewPhotos: (images: string[], startIndex?: number) => void; }> = ({ task, onEdit, onDelete, onViewPhotos }) => {
   const { role } = useAuth();
-  // Agora visitantes também veem o botão de "editar", mas ele servirá apenas para ver detalhes.
   const showViewButton = role === 'PLANEJADOR' || role === 'PRODUÇÃO' || role === 'VIEWER';
   const canDelete = role === 'PLANEJADOR';
 
@@ -41,17 +40,6 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
 
   const status = getStatusInfo(task);
   
-  // Planned Resources
-  const personnelCount = task.resources?.personnel?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-  const equipmentCount = task.resources?.equipment?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-
-  // Actual Resources
-  const actualPersonnelCount = task.resources?.personnel?.reduce((sum, item) => sum + (item.actualQuantity || 0), 0) || 0;
-  const actualEquipmentCount = task.resources?.equipment?.reduce((sum, item) => sum + (item.actualQuantity || 0), 0) || 0;
-
-  const resourceTitle = `Equipe (Prev/Real): ${task.resources?.personnel?.map(p => `${p.role}: ${p.quantity}/${p.actualQuantity ?? '-'}`).join('; ') || 'N/A'}\nEquipamentos (Prev/Real): ${task.resources?.equipment?.map(e => `${e.name}: ${e.quantity}/${e.actualQuantity ?? '-'}`).join('; ') || 'N/A'}`;
-
-
   const getStatusStyle = () => {
     return `text-${status.colorClass} border-${status.colorClass}/40 bg-${status.colorClass}/10 shadow-[0_0_10px_rgba(255,255,255,0.1)] print:text-black print:border-black print:bg-white`;
   };
@@ -117,43 +105,13 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* QUANTIDADES */}
-      <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
+      <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Quantidades</span>
         <div className="grid grid-cols-[15px_1fr] gap-x-2 text-left max-w-max mx-auto">
             <span className="text-neon-orange/80 font-black">P:</span>
             <span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
             <span className="text-neon-green/80 font-black">R:</span>
             <span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
-        </div>
-      </div>
-      
-      {/* RECURSOS */}
-      <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center print:text-black" title={resourceTitle}>
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Recursos</span>
-        <div className="flex justify-center items-stretch gap-3">
-          {/* Personnel */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-base">👨‍🔧</span>
-            <div className="grid grid-cols-[auto_1fr] gap-x-1.5 text-left leading-tight">
-              <span className="text-neon-orange/80 font-black">P:</span>
-              <span className="font-semibold">{personnelCount > 0 ? personnelCount : '---'}</span>
-              <span className="text-neon-green/80 font-black">R:</span>
-              <span className="font-semibold">{task.actualStartDate && personnelCount > 0 ? actualPersonnelCount : '---'}</span>
-            </div>
-          </div>
-
-          <div className="border-l border-white/10"></div>
-
-          {/* Equipment */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-base">🏗️</span>
-            <div className="grid grid-cols-[auto_1fr] gap-x-1.5 text-left leading-tight">
-              <span className="text-neon-orange/80 font-black">P:</span>
-              <span className="font-semibold">{equipmentCount > 0 ? equipmentCount : '---'}</span>
-              <span className="text-neon-green/80 font-black">R:</span>
-              <span className="font-semibold">{task.actualStartDate && equipmentCount > 0 ? actualEquipmentCount : '---'}</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -165,7 +123,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* PROGRESSO */}
-      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
+      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-4"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -174,7 +132,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         </div>
       </div>
 
-      {/* AÇÕES - Visíveis e acessíveis no mobile */}
+      {/* AÇÕES */}
       {showViewButton && (
         <div className="col-span-3 md:col-span-1 flex justify-end gap-2 print:hidden">
           {task.photo_urls && task.photo_urls.length > 0 && (
@@ -232,10 +190,9 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" />
                 <SortableHeader title="Local" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Datas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" centered />
-                <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Recursos" sortKey="resources" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
+                <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-4"} />
                 {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
             </div>
             {/* Lista de Itens */}

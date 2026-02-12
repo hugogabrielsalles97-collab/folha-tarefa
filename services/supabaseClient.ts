@@ -1,7 +1,6 @@
 
-
-import { createClient } from '@supabase/supabase-js';
-import { Discipline, TaskLevel, UnitOfMeasurement, Resources } from '../types';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { Discipline, TaskLevel, UnitOfMeasurement } from '../types';
 
 export interface DBTask {
   id: string;
@@ -26,7 +25,6 @@ export interface DBTask {
   plannedWeather?: string;
   actualWeather?: string;
   observations?: string;
-  resources?: Resources;
 }
 
 export interface Database {
@@ -41,7 +39,21 @@ export interface Database {
   }
 }
 
-const supabaseUrl = 'https://lngeppgwfziulcnaczab.supabase.co';
-const supabaseAnonKey = 'sb_publishable_jkz6_kzprh2Z23g-pKBUyg_X4Zmq4pY';
+const initializeSupabase = (): SupabaseClient<Database> | null => {
+  // SOLUÇÃO: Inserindo as credenciais diretamente para garantir o funcionamento neste ambiente.
+  const supabaseUrl = "https://lngeppgwfziulcnaczab.supabase.co";
+  const supabaseAnonKey = "sb_publishable_jkz6_kzprh2Z23g-pKBUyg_X4Zmq4pY";
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  if (supabaseUrl && supabaseAnonKey) {
+    try {
+      return createClient<Database>(supabaseUrl, supabaseAnonKey);
+    } catch (error) {
+      console.error("Erro ao inicializar o cliente Supabase:", error);
+      return null;
+    }
+  }
+  
+  return null;
+};
+
+export const supabase = initializeSupabase();

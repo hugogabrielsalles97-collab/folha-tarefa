@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { Task, ChatMessage } from './types';
 import { useSupabaseTasks } from './hooks/useSupabaseTasks';
@@ -16,7 +17,7 @@ import ChatbotWidget from './components/ChatbotWidget';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
-  const { tasks, addTask, updateTask, deleteTask, loading } = useSupabaseTasks();
+  const { tasks, addTask, updateTask, deleteTask, loading, error } = useSupabaseTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [photoViewerState, setPhotoViewerState] = useState({
@@ -162,6 +163,25 @@ const App: React.FC = () => {
   }, [chatMessages.length]);
 
   if (!role) return <Login />;
+
+  if (error) {
+    return (
+        <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-sans flex items-center justify-center">
+            <div className="technical-frame max-w-2xl text-center">
+                <div className="corner-marker corner-tl"></div>
+                <div className="corner-marker corner-tr"></div>
+                <div className="corner-marker corner-bl"></div>
+                <div className="corner-marker corner-br"></div>
+                <div className="eng-header-tab" style={{backgroundColor: '#ff3131', color: '#fff'}}>FALHA CRÍTICA</div>
+                <h2 className="text-2xl font-black text-neon-red uppercase tracking-widest mb-4">Erro de Conexão</h2>
+                <p className="text-white/80 mb-6 font-mono">{error}</p>
+                <p className="text-xs text-white/40">
+                    Por favor, verifique se as variáveis de ambiente (VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY) estão configuradas corretamente no ambiente de implantação e atualize a página.
+                </p>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-sans">
