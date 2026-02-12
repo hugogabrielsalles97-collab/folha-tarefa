@@ -81,17 +81,21 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
             <span className="text-[9px] block text-white/20 uppercase font-black print:text-black">Real</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+            {/* Previsto */}
             <div className="flex justify-center items-center gap-1.5 border-r md:border-r-0 border-dark-border pr-2 md:pr-0 md:mb-1">
                 <span>
                     {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
                     {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
                 </span>
-                {task.plannedWeather && task.plannedWeather.includes('°C') && (
-                    <span title={`Previsão: ${task.plannedWeather}`} className="text-lg print:hidden">
-                        {task.plannedWeather.split(' ')[0]}
-                    </span>
-                )}
+                <div className="w-8 flex justify-center items-center">
+                    {task.plannedWeather && task.plannedWeather.includes('°C') && (
+                        <span title={`Previsão: ${task.plannedWeather}`} className="text-lg print:hidden">
+                            {task.plannedWeather.split(' ')[0]}
+                        </span>
+                    )}
+                </div>
             </div>
+             {/* Real */}
              <div className="flex justify-center items-center gap-1.5 text-neon-green/80">
                 {task.actualStartDate ? (
                     <>
@@ -99,11 +103,13 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
                             {new Date(task.actualStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
                             {task.actualEndDate ? new Date(task.actualEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '---'}
                         </span>
-                        {task.actualWeather && task.actualWeather.includes('°C') && (
-                            <span title={`Real: ${task.actualWeather}`} className="text-lg print:hidden">
-                                {task.actualWeather.split(' ')[0]}
-                            </span>
-                        )}
+                        <div className="w-8 flex justify-center items-center">
+                            {task.actualWeather && task.actualWeather.includes('°C') && (
+                                <span title={`Real: ${task.actualWeather}`} className="text-lg print:hidden">
+                                    {task.actualWeather.split(' ')[0]}
+                                </span>
+                            )}
+                        </div>
                     </>
                 ) : <span className="text-white/20">---</span> }
             </div>
@@ -244,4 +250,3 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
 };
 
 export default TaskList;
-    

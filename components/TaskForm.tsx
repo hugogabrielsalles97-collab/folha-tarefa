@@ -156,6 +156,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     } catch (error) {
       // The error object is of type 'unknown' and its properties cannot be accessed directly.
       // We must first check if it's an instance of Error to safely access the message.
+// FIX: Safely handle unknown error type.
       const message = error instanceof Error ? error.message : "An unknown error occurred during image safety analysis.";
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
     }
@@ -183,6 +184,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     } catch (error) {
       // The error object is of type 'unknown' and its properties cannot be accessed directly.
       // We must first check if it's an instance of Error to safely access the message.
+// FIX: Safely handle unknown error type.
       const message = error instanceof Error ? error.message : "An unknown error occurred while analyzing the existing image.";
       setSafetyAnalyses(prev => ({ ...prev, [url]: { status: 'error', analysis: message } }));
     }
