@@ -1,4 +1,5 @@
 
+
 import { createClient } from '@supabase/supabase-js';
 import { Discipline, TaskLevel, UnitOfMeasurement } from '../types';
 
@@ -22,6 +23,8 @@ export interface DBTask {
   quantityUnit?: UnitOfMeasurement;
   progress: number;
   photo_urls?: string[];
+  plannedWeather?: string;
+  actualWeather?: string;
 }
 
 export interface Database {

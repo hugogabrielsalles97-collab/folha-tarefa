@@ -76,10 +76,39 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* DATAS */}
-      <div className="col-span-6 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight print:text-black print:font-bold">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">PREVISTO</span>
-        {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
-        {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+      <div className="col-span-12 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight print:text-black print:font-bold">
+        <div className="md:hidden grid grid-cols-2 gap-2 mb-1">
+            <span className="text-[9px] block text-white/20 uppercase font-black print:text-black">Previsto</span>
+            <span className="text-[9px] block text-white/20 uppercase font-black print:text-black">Real</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+            <div className="flex justify-center items-center gap-1.5 border-r md:border-r-0 border-dark-border pr-2 md:pr-0 md:mb-1">
+                <span>
+                    {new Date(task.plannedStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
+                    {new Date(task.plannedEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+                </span>
+                {task.plannedWeather && task.plannedWeather.includes('°C') && (
+                    <span title={`Previsão: ${task.plannedWeather}`} className="text-lg print:hidden">
+                        {task.plannedWeather.split(' ')[0]}
+                    </span>
+                )}
+            </div>
+             <div className="flex justify-center items-center gap-1.5 text-neon-green/80">
+                {task.actualStartDate ? (
+                    <>
+                        <span>
+                            {new Date(task.actualStartDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}<br/>
+                            {task.actualEndDate ? new Date(task.actualEndDate + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '---'}
+                        </span>
+                        {task.actualWeather && task.actualWeather.includes('°C') && (
+                            <span title={`Real: ${task.actualWeather}`} className="text-lg print:hidden">
+                                {task.actualWeather.split(' ')[0]}
+                            </span>
+                        )}
+                    </>
+                ) : <span className="text-white/20">---</span> }
+            </div>
+        </div>
       </div>
 
       {/* QUANTIDADES */}
@@ -169,7 +198,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
                 <SortableHeader title="Frente" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Previsto" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
+                <SortableHeader title="Datas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" centered />
                 <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />

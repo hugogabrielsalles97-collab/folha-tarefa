@@ -5,6 +5,7 @@ import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS,
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { EyeIcon } from './icons';
+import { getWeatherForecast, getHistoricalWeather } from '../services/weatherService';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -79,6 +80,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     plannedEndDate: '',
     actualStartDate: '',
     actualEndDate: '',
+    plannedWeather: '',
+    actualWeather: '',
     plannedQuantity: undefined,
     actualQuantity: undefined,
     quantityUnit: undefined,
@@ -91,6 +94,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const [showConflictWarning, setShowConflictWarning] = useState(false);
   const [conflictCount, setConflictCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingPlannedWeather, setIsFetchingPlannedWeather] = useState(false);
+  const [isFetchingActualWeather, setIsFetchingActualWeather] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -136,10 +141,60 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       setTask({ 
           ...existingTask, 
           observations: existingTask.observations || '',
-          photo_urls: existingTask.photo_urls || []
+          photo_urls: existingTask.photo_urls || [],
+          plannedWeather: existingTask.plannedWeather || '',
+          actualWeather: existingTask.actualWeather || '',
       });
     }
   }, [existingTask]);
+
+  // Busca previsão do tempo planejada para datas futuras
+  useEffect(() => {
+    if (task.plannedStartDate && !isProductionUser && !isViewer) {
+      const fetchWeather = async () => {
+        setIsFetchingPlannedWeather(true);
+        const weather = await getWeatherForecast(task.plannedStartDate);
+        setTask(prev => ({ ...prev, plannedWeather: weather }));
+        setIsFetchingPlannedWeather(false);
+      };
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const plannedDate = new Date(task.plannedStartDate + 'T00:00:00Z');
+      
+      if (plannedDate >= today) {
+        fetchWeather();
+      } else {
+        setTask(prev => ({ ...prev, plannedWeather: '' }));
+      }
+    } else {
+      setTask(prev => ({ ...prev, plannedWeather: '' }));
+    }
+  }, [task.plannedStartDate, isProductionUser, isViewer]);
+
+  // Busca tempo histórico para datas de execução passadas
+  useEffect(() => {
+    if (task.actualStartDate && !isViewer && !existingTask?.actualWeather) {
+      const fetchHistoricalWeather = async () => {
+        setIsFetchingActualWeather(true);
+        const weather = await getHistoricalWeather(task.actualStartDate);
+        setTask(prev => ({ ...prev, actualWeather: weather }));
+        setIsFetchingActualWeather(false);
+      };
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const actualDate = new Date(task.actualStartDate + 'T00:00:00Z');
+
+      if (actualDate <= today) {
+        fetchHistoricalWeather();
+      } else {
+        setTask(prev => ({ ...prev, actualWeather: '' }));
+      }
+    } else if (!task.actualStartDate) {
+        setTask(prev => ({ ...prev, actualWeather: '' }));
+    }
+  }, [task.actualStartDate, isViewer, existingTask?.actualWeather]);
 
   useEffect(() => {
     const planned = task.plannedQuantity;
@@ -339,6 +394,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             <InputField label="Data Término" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
             <InputField label="Quantidade Prevista" name="plannedQuantity" type="number" step="0.01" value={task.plannedQuantity} onChange={handleChange} disabled={isProductionUser || isViewer} />
         </div>
+        {(isFetchingPlannedWeather || task.plannedWeather) && (
+            <div className="mt-3 text-xs text-white/50 font-mono p-2 bg-dark-bg border border-dark-border text-center">
+                {isFetchingPlannedWeather ? 'Buscando previsão...' : task.plannedWeather}
+            </div>
+        )}
       </div>
 
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-green">
@@ -348,6 +408,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
             <InputField label="Quantidade Realizada" name="actualQuantity" type="number" step="0.01" value={task.actualQuantity} onChange={handleChange} disabled={isViewer} />
         </div>
+        {(isFetchingActualWeather || task.actualWeather) && (
+            <div className="mt-3 text-xs text-white/50 font-mono p-2 bg-dark-bg border border-dark-border text-center">
+                {isFetchingActualWeather ? 'Buscando tempo real...' : task.actualWeather}
+            </div>
+        )}
       </div>
       
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
@@ -369,7 +434,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                     ) : (
                         <div className="text-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-white/20 group-hover:text-neon-cyan transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <p className="mt-2 text-sm text-white/50">
                                 <span className="font-semibold text-neon-cyan">CLIQUE AQUI</span> PARA ADICIONAR

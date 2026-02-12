@@ -7,6 +7,7 @@ import GanttChart from './GanttChart';
 import TaskList from './TaskList';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS } from '../constants';
 import CompletionChart from './CompletionChart';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardProps {
   tasks: Task[];
@@ -32,6 +33,7 @@ const TechnicalFrame: React.FC<{ title: string; children: React.ReactNode; class
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask, onViewPhotos }) => {
+  const { role } = useAuth();
   const [filter, setFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -156,37 +158,41 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onEditTask, onDeleteTask, 
         <KPI title="Avanço Físico Geral" value={`${stats.overallProgress}%`} color="magenta" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
-        <TechnicalFrame title="PROGRESSO DISCIPLINAR" className="lg:col-span-1">
-          <ProgressChart tasks={filteredTasks} />
-        </TechnicalFrame>
-        
-        <TechnicalFrame 
-          title="LINHA DO TEMPO (GANTT)" 
-          className="lg:col-span-2"
-          headerContent={
-            <div className="flex flex-col items-end">
-              <select
-                id="ganttOAEFilter"
-                value={ganttOAEFilter}
-                onChange={e => setGanttOAEFilter(e.target.value)}
-                className="bg-dark-bg border-2 border-neon-orange shadow-neon-orange text-white p-2 text-xs font-bold uppercase outline-none focus:bg-neon-orange focus:text-black transition-all"
-              >
-                <option value="">TODAS AS OBRAS</option>
-                {OBRAS_DE_ARTE_OPTIONS.map(oae => <option key={oae} value={oae}>{oae}</option>)}
-              </select>
-            </div>
-          }
-        >
-          <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-            <GanttChart tasks={ganttTasks} />
+      {role !== 'PRODUÇÃO' && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
+            <TechnicalFrame title="PROGRESSO DISCIPLINAR" className="lg:col-span-1">
+              <ProgressChart tasks={filteredTasks} />
+            </TechnicalFrame>
+            
+            <TechnicalFrame 
+              title="LINHA DO TEMPO (GANTT)" 
+              className="lg:col-span-2"
+              headerContent={
+                <div className="flex flex-col items-end">
+                  <select
+                    id="ganttOAEFilter"
+                    value={ganttOAEFilter}
+                    onChange={e => setGanttOAEFilter(e.target.value)}
+                    className="bg-dark-bg border-2 border-neon-orange shadow-neon-orange text-white p-2 text-xs font-bold uppercase outline-none focus:bg-neon-orange focus:text-black transition-all"
+                  >
+                    <option value="">TODAS AS OBRAS</option>
+                    {OBRAS_DE_ARTE_OPTIONS.map(oae => <option key={oae} value={oae}>{oae}</option>)}
+                  </select>
+                </div>
+              }
+            >
+              <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                <GanttChart tasks={ganttTasks} />
+              </div>
+            </TechnicalFrame>
           </div>
-        </TechnicalFrame>
-      </div>
 
-      <TechnicalFrame title="PREVISTO VS REALIZADO" className="print:hidden">
-        <CompletionChart tasks={filteredTasks} />
-      </TechnicalFrame>
+          <TechnicalFrame title="PREVISTO VS REALIZADO" className="print:hidden">
+            <CompletionChart tasks={filteredTasks} />
+          </TechnicalFrame>
+        </>
+      )}
 
       <TechnicalFrame 
         title="LISTA DE TAREFAS"

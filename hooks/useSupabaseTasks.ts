@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, DBTask } from '../services/supabaseClient';
 import { Task } from '../types';
@@ -9,7 +10,8 @@ const filterTaskForDB = (task: Partial<Task>): any => {
         'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
         'actualStartDate', 'actualEndDate', 'progress',
-        'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls'
+        'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls',
+        'plannedWeather', 'actualWeather'
     ];
 
     const sanitized: any = {};
