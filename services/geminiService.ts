@@ -1,18 +1,9 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// 1. LÊ A CHAVE DA API DAS VARIÁVEIS DE AMBIENTE
-// O prefixo `VITE_` é essencial para que o Vite a exponha ao navegador.
-// FIX: Switched from import.meta.env to process.env.API_KEY to align with guidelines and fix TypeScript error.
-const GEMINI_API_KEY = process.env.API_KEY;
-
-// 2. VERIFICA SE A CHAVE EXISTE E INICIALIZA O CLIENTE
-// Se a chave não for encontrada, um erro claro será lançado para o desenvolvedor.
-if (!GEMINI_API_KEY) {
-  throw new Error("A chave da API do Gemini não foi encontrada. Configure a variável de ambiente API_KEY.");
-}
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// FIX: Per coding guidelines, initialize GoogleGenAI directly with process.env.API_KEY.
+// This resolves the 'import.meta.env' TypeScript error and aligns with the project's API key management strategy.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
 const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
@@ -185,6 +176,7 @@ export async function analyzeImageSafety(file: File): Promise<string> {
 
     try {
         const response = await ai.models.generateContent({
+            // FIX: Use a multimodal model suitable for image analysis, not an image generation model.
             model: 'gemini-3-flash-preview',
             contents: { parts: [imagePart, { text: prompt }] },
         });
