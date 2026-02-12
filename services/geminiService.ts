@@ -1,5 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { Task } from "../types";
 
 // AVISO: Incorporar chaves de API diretamente no código do lado do cliente não é seguro para produção.
 // O ideal é usar variáveis de ambiente e um backend para fazer as chamadas.
@@ -12,14 +13,40 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
+const callGemini = async (prompt: string, modelName: string = 'gemini-flash-latest'): Promise<string> => {
+     try {
+        const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+        });
+        
+        if (!response.text) {
+            throw new Error("A IA não retornou uma resposta textual válida.");
+        }
+        return response.text;
+
+    } catch (error: any) {
+        console.error("Erro na API Gemini:", error);
+        
+        let errorMessage = "Ocorreu um erro desconhecido ao contatar a IA.";
+        if (error.message.includes('API key not valid')) {
+            errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
+        } else if (error.message.includes('429')) {
+             errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
+        } else {
+            errorMessage = error.message;
+        }
+        
+        throw new Error(errorMessage);
+    }
+}
+
 /**
  * Analisa as observações de uma tarefa usando o Gemini.
  * @param text O texto das observações a ser analisado.
  * @returns A análise textual da IA.
  */
 export async function analyzeObservations(text: string): Promise<string> {
-    const model = 'gemini-flash-latest';
-    
     const prompt = `
         Você é um engenheiro de obras sênior, especialista em análise de riscos e planejamento. 
         Sua tarefa é analisar a seguinte anotação de diário de obra (RDO) e fornecer um resumo objetivo e acionável.
@@ -34,30 +61,7 @@ export async function analyzeObservations(text: string): Promise<string> {
         Formate sua resposta de forma clara e concisa em português do Brasil, usando markdown simples (negrito para títulos e listas).
         Se nenhum risco for aparente, afirme isso claramente.
     `;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-        });
-        
-        if (!response.text) {
-            throw new Error("A IA não retornou uma resposta válida.");
-        }
-        return response.text;
-
-    } catch (error: any) {
-        console.error("Erro na API Gemini:", error);
-        
-        let errorMessage = "Ocorreu um erro desconhecido ao contatar a IA.";
-        if (error.message.includes('API key not valid')) {
-            errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
-        } else if (error.message.includes('429')) {
-             errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
-        }
-        
-        throw new Error(errorMessage);
-    }
+    return callGemini(prompt);
 }
 
 /**
@@ -67,8 +71,6 @@ export async function analyzeObservations(text: string): Promise<string> {
  * @returns O rascunho do RDO gerado pela IA.
  */
 export async function generateRDODraft(activities: string, date: string): Promise<string> {
-    const model = 'gemini-flash-latest';
-    
     const prompt = `
         Você é um engenheiro de obras sênior responsável pela elaboração do Relatório Diário de Obra (RDO).
         Sua tarefa é redigir um RDO formal e bem estruturado em português do Brasil para a data de ${new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}.
@@ -87,28 +89,56 @@ export async function generateRDODraft(activities: string, date: string): Promis
 
         Seja objetivo, técnico e use uma linguagem profissional. Formate a resposta usando markdown para clareza (títulos em negrito, listas com marcadores).
     `;
+    return callGemini(prompt);
+}
 
-    try {
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-        });
-        
-        if (!response.text) {
-            throw new Error("A IA não retornou uma resposta válida para o RDO.");
-        }
-        return response.text;
 
-    } catch (error: any) {
-        console.error("Erro na API Gemini ao gerar RDO:", error);
-        
-        let errorMessage = "Ocorreu um erro desconhecido ao contatar a IA.";
-        if (error.message.includes('API key not valid')) {
-            errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
-        } else if (error.message.includes('429')) {
-             errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
-        }
-        
-        throw new Error(errorMessage);
-    }
+/**
+ * Responde a uma pergunta sobre os dados do projeto usando a IA.
+ * @param tasks A lista de todas as tarefas do projeto.
+ * @param question A pergunta do usuário.
+ * @returns A resposta da IA.
+ */
+export async function queryProjectData(tasks: Task[], question: string): Promise<string> {
+    const getStatus = (task: Task) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const plannedEndDate = new Date(task.plannedEndDate + 'T00:00:00');
+        if (task.progress === 100) return "Concluído";
+        if (today > plannedEndDate) return "Atrasado";
+        if (!task.actualStartDate) return "Não Iniciada";
+        return "Em Andamento";
+    };
+
+    const tasksData = tasks.map(t => {
+        const location = [t.obraDeArte, t.frente, t.apoio, t.vao, t.corte].filter(Boolean).join(' / ');
+        return `
+- Tarefa: ${t.name}
+  - ID: ${t.id}
+  - Disciplina: ${t.discipline} / ${t.level}
+  - Local: ${location || 'N/A'}
+  - Datas (Previsto): ${t.plannedStartDate} a ${t.plannedEndDate}
+  - Datas (Real): ${t.actualStartDate || 'N/A'} a ${t.actualEndDate || 'N/A'}
+  - Progresso: ${t.progress}%
+  - Status: ${getStatus(t)}
+  - Quantidade Prevista: ${t.plannedQuantity || 'N/A'} ${t.quantityUnit || ''}
+  - Quantidade Realizada: ${t.actualQuantity || 'N/A'} ${t.quantityUnit || ''}
+  - Observações: ${t.observations || 'Nenhuma'}
+        `.trim();
+    }).join('\n---\n');
+
+    const prompt = `
+        Você é um assistente de IA especialista em análise de dados de projetos de construção civil. Sua única fonte de informação são os dados brutos do projeto fornecidos abaixo. Responda à pergunta do usuário baseando-se EXCLUSIVAMENTE nestes dados. Não invente informações. Se a resposta não estiver nos dados, diga "Não encontrei essa informação nos dados do projeto." Formate suas respostas usando markdown para melhor legibilidade (listas, negrito, etc.).
+
+        A data de hoje é ${new Date().toLocaleDateString('pt-BR')}.
+
+        --- DADOS DO PROJETO ---
+        ${tasksData}
+        --- FIM DOS DADOS ---
+
+        PERGUNTA DO USUÁRIO: "${question}"
+
+        Sua Resposta:
+    `;
+    return callGemini(prompt);
 }

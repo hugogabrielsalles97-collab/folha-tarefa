@@ -61,3 +61,8 @@ export interface Task {
   observations?: string;
   photo_urls?: string[];
 }
+
+export interface ChatMessage {
+  sender: 'user' | 'ai' | 'error';
+  text: string;
+}

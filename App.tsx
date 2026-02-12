@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { Task } from './types';
+import { Task, ChatMessage } from './types';
 import { useSupabaseTasks } from './hooks/useSupabaseTasks';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
@@ -9,9 +9,10 @@ import Login from './components/Login';
 import PhotoViewer from './components/PhotoViewer';
 import { AddIcon, SparklesIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
-import { generateRDODraft } from './services/geminiService';
+import { generateRDODraft, queryProjectData } from './services/geminiService';
 import RdoModalContent from './components/RdoModalContent';
 import RdoDateSelectionModal from './components/RdoDateSelectionModal';
+import ChatbotWidget from './components/ChatbotWidget';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
@@ -28,6 +29,9 @@ const App: React.FC = () => {
   const [isGeneratingRdo, setIsGeneratingRdo] = useState(false);
   const [rdoContent, setRdoContent] = useState('');
   const [rdoReportDate, setRdoReportDate] = useState('');
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatbotLoading, setIsChatbotLoading] = useState(false);
 
 
   const openPhotoViewer = useCallback((images: string[], startIndex = 0) => {
@@ -134,6 +138,29 @@ const App: React.FC = () => {
       handleGenerateRdo(date);
   };
 
+  const handleSendChatMessage = useCallback(async (message: string) => {
+    const newUserMessage: ChatMessage = { sender: 'user', text: message };
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setIsChatbotLoading(true);
+    
+    try {
+        const responseText = await queryProjectData(tasks, message);
+        const newAiMessage: ChatMessage = { sender: 'ai', text: responseText };
+        setChatMessages(prev => [...prev, newAiMessage]);
+    } catch (error: any) {
+        const newErrorMessage: ChatMessage = { sender: 'error', text: `Desculpe, ocorreu um erro: ${error.message}` };
+        setChatMessages(prev => [...prev, newErrorMessage]);
+    } finally {
+        setIsChatbotLoading(false);
+    }
+  }, [tasks]);
+
+  const initializeChatbot = useCallback(() => {
+    if (chatMessages.length === 0) {
+        setChatMessages([{ sender: 'ai', text: 'Olá! Sou seu assistente de projeto. Faça uma pergunta sobre as tarefas atuais para começar.' }]);
+    }
+  }, [chatMessages.length]);
+
   if (!role) return <Login />;
 
   return (
@@ -229,6 +256,13 @@ const App: React.FC = () => {
             reportDate={new Date(rdoReportDate + 'T00:00:00Z').toLocaleDateString('pt-BR')}
         />
       </Modal>
+
+      <ChatbotWidget
+        messages={chatMessages}
+        onSendMessage={handleSendChatMessage}
+        isLoading={isChatbotLoading}
+        onOpen={initializeChatbot}
+      />
     </div>
   );
 };
