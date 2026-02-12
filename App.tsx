@@ -11,6 +11,7 @@ import { AddIcon, SparklesIcon } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 import { generateRDODraft } from './services/geminiService';
 import RdoModalContent from './components/RdoModalContent';
+import RdoDateSelectionModal from './components/RdoDateSelectionModal';
 
 const App: React.FC = () => {
   const { role, logout } = useAuth();
@@ -22,9 +23,12 @@ const App: React.FC = () => {
     images: [] as string[],
     currentIndex: 0,
   });
+  const [isRdoDateModalOpen, setIsRdoDateModalOpen] = useState(false);
   const [isRdoModalOpen, setIsRdoModalOpen] = useState(false);
   const [isGeneratingRdo, setIsGeneratingRdo] = useState(false);
   const [rdoContent, setRdoContent] = useState('');
+  const [rdoReportDate, setRdoReportDate] = useState('');
+
 
   const openPhotoViewer = useCallback((images: string[], startIndex = 0) => {
     if (images && images.length > 0) {
@@ -81,42 +85,54 @@ const App: React.FC = () => {
     }
   }, [deleteTask]);
   
-  const handleGenerateRdo = useCallback(async () => {
+  const handleGenerateRdo = useCallback(async (dateStr: string) => {
     setIsGeneratingRdo(true);
     setRdoContent('');
     
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const selectedDateObj = new Date(dateStr + 'T00:00:00Z');
 
     const activeTasks = tasks.filter(task => {
-        const isCompletedToday = task.actualEndDate === todayStr;
-        const isInProgress = task.actualStartDate && !task.actualEndDate;
-        return isCompletedToday || isInProgress;
+        if (!task.actualStartDate) return false;
+
+        const startDateObj = new Date(task.actualStartDate + 'T00:00:00Z');
+        if (startDateObj > selectedDateObj) return false;
+
+        if (task.actualEndDate) {
+            const endDateObj = new Date(task.actualEndDate + 'T00:00:00Z');
+            if (endDateObj < selectedDateObj) return false;
+        }
+        return true;
     });
 
     if (activeTasks.length === 0) {
-        alert("Nenhuma atividade em andamento ou concluída hoje foi encontrada para gerar o RDO.");
+        const formattedDate = new Date(dateStr + 'T00:00:00Z').toLocaleDateString('pt-BR');
+        alert(`Nenhuma atividade em andamento ou concluída foi encontrada para a data ${formattedDate}.`);
         setIsGeneratingRdo(false);
         return;
     }
 
     const activitiesSummary = activeTasks.map(task => {
         const location = [task.obraDeArte, task.frente, task.apoio, task.vao, task.corte].filter(Boolean).join(' / ');
-        const status = task.actualEndDate === todayStr ? `Concluída Hoje (${task.progress}%)` : `Em Andamento (${task.progress}%)`;
+        const status = task.actualEndDate === dateStr ? `Concluída (${task.progress}%)` : `Em Andamento (${task.progress}%)`;
         return `- TAREFA: ${task.name}\n  - LOCAL: ${location}\n  - STATUS: ${status}\n  - OBSERVAÇÕES: ${task.observations || 'Nenhuma.'}`;
     }).join('\n\n');
 
     try {
-        const draft = await generateRDODraft(activitiesSummary, todayStr);
+        const draft = await generateRDODraft(activitiesSummary, dateStr);
         setRdoContent(draft);
         setIsRdoModalOpen(true);
-    } catch (error: any)
- {
+    } catch (error: any) {
         alert(`Erro ao gerar RDO: ${error.message}`);
     } finally {
         setIsGeneratingRdo(false);
     }
   }, [tasks]);
+
+  const handleTriggerRdoGeneration = (date: string) => {
+      setIsRdoDateModalOpen(false);
+      setRdoReportDate(date);
+      handleGenerateRdo(date);
+  };
 
   if (!role) return <Login />;
 
@@ -146,7 +162,7 @@ const App: React.FC = () => {
           )}
           {role === 'PLANEJADOR' && (
             <button
-              onClick={handleGenerateRdo}
+              onClick={() => setIsRdoDateModalOpen(true)}
               disabled={isGeneratingRdo || loading}
               className="flex items-center gap-2 bg-neon-magenta text-black font-bold py-2 px-6 border-2 border-neon-magenta shadow-neon-magenta hover:bg-white transition-all disabled:bg-dark-border disabled:text-white/30 disabled:border-dark-border disabled:shadow-none disabled:cursor-wait"
             >
@@ -199,11 +215,18 @@ const App: React.FC = () => {
         />
       )}
 
+      <Modal isOpen={isRdoDateModalOpen} onClose={() => setIsRdoDateModalOpen(false)}>
+        <RdoDateSelectionModal 
+            onGenerate={handleTriggerRdoGeneration}
+            onClose={() => setIsRdoDateModalOpen(false)}
+        />
+      </Modal>
+
       <Modal isOpen={isRdoModalOpen} onClose={() => setIsRdoModalOpen(false)}>
         <RdoModalContent 
             rdoContent={rdoContent} 
             onClose={() => setIsRdoModalOpen(false)}
-            reportDate={new Date().toLocaleDateString('pt-BR')}
+            reportDate={new Date(rdoReportDate + 'T00:00:00Z').toLocaleDateString('pt-BR')}
         />
       </Modal>
     </div>
