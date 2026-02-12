@@ -25,6 +25,7 @@ export interface DBTask {
   photo_urls?: string[];
   plannedWeather?: string;
   actualWeather?: string;
+  observations?: string;
 }
 
 export interface Database {

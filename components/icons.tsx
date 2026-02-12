@@ -37,3 +37,9 @@ export const EyeIcon: React.FC = () => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
 );
+
+export const SparklesIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m1-12a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1h-6a1 1 0 01-1-1V6zM17 3a1 1 0 011-1h.01a1 1 0 011 1v.01a1 1 0 01-1 1H18a1 1 0 01-1-1V3zm1 18a1 1 0 011-1h.01a1 1 0 011 1v.01a1 1 0 01-1 1H18a1 1 0 01-1-1V21z"/>
+    </svg>
+);

@@ -4,8 +4,9 @@ import { Task, Discipline, TaskLevel, OAELevel } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS, FRENTES_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { EyeIcon } from './icons';
+import { EyeIcon, SparklesIcon } from './icons';
 import { getWeatherForecast, getHistoricalWeather } from '../services/weatherService';
+import { analyzeObservations } from '../services/geminiService';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -62,6 +63,24 @@ const SelectField = ({ label, name, value, onChange, children, error, disabled, 
      </div>
 );
 
+const TextAreaField = ({ label, name, value, onChange, disabled, placeholder }: { label?: string, name: string, value?: any, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, disabled?: boolean, placeholder?: string }) => {
+    return (
+        <div className="mb-1.5">
+            {label && <label htmlFor={name} className="block text-[9px] font-black text-neon-cyan uppercase tracking-widest mb-0.5">{label}</label>}
+            <textarea
+                id={name}
+                name={name}
+                value={value ?? ''}
+                onChange={onChange}
+                disabled={disabled}
+                placeholder={placeholder}
+                rows={4}
+                className={`w-full border border-dark-border p-2 font-mono text-xs focus:outline-none focus:border-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-dark-bg text-white placeholder:text-white/10`}
+            />
+        </div>
+    );
+};
+
 const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, allTasks, onViewPhotos }) => {
   const { role } = useAuth();
   const isProductionUser = role === 'PRODUÇÃO';
@@ -96,6 +115,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const [isUploading, setIsUploading] = useState(false);
   const [isFetchingPlannedWeather, setIsFetchingPlannedWeather] = useState(false);
   const [isFetchingActualWeather, setIsFetchingActualWeather] = useState(false);
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState('');
+  const [aiAnalysisError, setAiAnalysisError] = useState('');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -295,6 +317,24 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     } as Task;
     onSave(taskToSave);
   };
+  
+  const handleAnalyzeWithAI = async () => {
+    if (!task.observations || isAnalyzingAI) return;
+    
+    setIsAnalyzingAI(true);
+    setAiAnalysisResult('');
+    setAiAnalysisError('');
+
+    try {
+        const result = await analyzeObservations(task.observations);
+        setAiAnalysisResult(result);
+    } catch (error: any) {
+        setAiAnalysisError(`Erro na análise: ${error.message}`);
+    } finally {
+        setIsAnalyzingAI(false);
+    }
+  };
+
 
   const progressColor = useMemo(() => {
     const p = task.progress || 0;
@@ -477,6 +517,54 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                         )}
                     </label>
                 )}
+            </div>
+        )}
+      </div>
+
+      <div className="bg-white/[0.03] p-3 border-l-4 border-white/20">
+        <div className="flex justify-between items-center mb-3">
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Observações & Anotações de Campo</p>
+            {!isViewer && (
+                <button 
+                    type="button"
+                    onClick={handleAnalyzeWithAI}
+                    disabled={isAnalyzingAI || !task.observations}
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-dark-bg border border-neon-magenta text-neon-magenta shadow-neon-magenta hover:bg-neon-magenta hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                    {isAnalyzingAI ? (
+                        <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Analisando...
+                        </>
+                    ) : (
+                        <>
+                            <SparklesIcon className="h-4 w-4"/>
+                            Analisar com IA
+                        </>
+                    )}
+                </button>
+            )}
+        </div>
+        <TextAreaField
+            name="observations"
+            value={task.observations}
+            onChange={handleChange}
+            disabled={isViewer}
+            placeholder="Digite aqui qualquer observação relevante, ocorrências ou anotações da equipe..."
+        />
+        {aiAnalysisResult && (
+            <div className="mt-3 p-3 bg-dark-bg border border-neon-magenta/50 text-white font-mono text-xs whitespace-pre-wrap">
+                <p className="text-[9px] font-black text-neon-magenta uppercase tracking-widest mb-2">Análise do Assistente IA</p>
+                {aiAnalysisResult}
+            </div>
+        )}
+         {aiAnalysisError && (
+            <div className="mt-3 p-3 bg-dark-bg border border-neon-red/50 text-neon-red font-mono text-xs">
+                 <p className="text-[9px] font-black uppercase tracking-widest mb-2">Erro de Análise</p>
+                {aiAnalysisError}
             </div>
         )}
       </div>
