@@ -2,8 +2,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// FIX: Initialize the GoogleGenAI client using the API key from environment variables as per the guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 1. LÊ A CHAVE DA API DAS VARIÁVEIS DE AMBIENTE
+// O prefixo `VITE_` é essencial para que o Vite a exponha ao navegador.
+// FIX: Switched from import.meta.env to process.env.API_KEY to align with guidelines and fix TypeScript error.
+const GEMINI_API_KEY = process.env.API_KEY;
+
+// 2. VERIFICA SE A CHAVE EXISTE E INICIALIZA O CLIENTE
+// Se a chave não for encontrada, um erro claro será lançado para o desenvolvedor.
+if (!GEMINI_API_KEY) {
+  throw new Error("A chave da API do Gemini não foi encontrada. Configure a variável de ambiente API_KEY.");
+}
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
 
 const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
      try {
@@ -24,7 +34,7 @@ const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-pr
         // FIX: Improved error handling to be type-safe by checking for `instanceof Error`.
         if (error instanceof Error) {
             if (error.message.includes('API key not valid')) {
-                errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
+                errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave nas suas variáveis de ambiente.";
             } else if (error.message.includes('429')) {
                 errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
             } else {
