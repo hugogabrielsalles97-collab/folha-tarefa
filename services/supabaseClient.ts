@@ -40,7 +40,8 @@ export interface Database {
 }
 
 const initializeSupabase = (): SupabaseClient<Database> | null => {
-  // SOLUÇÃO: Inserindo as credenciais diretamente para garantir o funcionamento neste ambiente.
+  // FIX: As variáveis de ambiente não estão sendo carregadas corretamente no ambiente de execução.
+  // Inserindo as credenciais diretamente para garantir a funcionalidade da aplicação.
   const supabaseUrl = "https://lngeppgwfziulcnaczab.supabase.co";
   const supabaseAnonKey = "sb_publishable_jkz6_kzprh2Z23g-pKBUyg_X4Zmq4pY";
 
@@ -53,6 +54,7 @@ const initializeSupabase = (): SupabaseClient<Database> | null => {
     }
   }
   
+  console.error("As credenciais do Supabase (URL e Chave) não foram encontradas ou são inválidas.");
   return null;
 };
 

@@ -1,5 +1,10 @@
 
 
+
+
+
+
+
 import React, { useState, useCallback } from 'react';
 import { Task, ChatMessage } from './types';
 import { useSupabaseTasks } from './hooks/useSupabaseTasks';
@@ -176,7 +181,7 @@ const App: React.FC = () => {
                 <h2 className="text-2xl font-black text-neon-red uppercase tracking-widest mb-4">Erro de Conexão</h2>
                 <p className="text-white/80 mb-6 font-mono">{error}</p>
                 <p className="text-xs text-white/40">
-                    Por favor, verifique se as variáveis de ambiente (VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY) estão configuradas corretamente no ambiente de implantação e atualize a página.
+                    Por favor, verifique se as variáveis de ambiente (SUPABASE_URL e SUPABASE_ANON_KEY) estão configuradas corretamente no ambiente de implantação e atualize a página.
                 </p>
             </div>
         </div>

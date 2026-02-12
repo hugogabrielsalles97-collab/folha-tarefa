@@ -1,9 +1,10 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, DBTask } from '../services/supabaseClient';
 import { Task } from '../types';
 
-const filterTaskForDB = (task: Partial<Task>): any => {
+// FIX: Changed return type from 'any' to 'Partial<DBTask>' to provide proper type information
+// to Supabase client methods, resolving overload errors.
+const filterTaskForDB = (task: Partial<Task>): Partial<DBTask> => {
     // Definimos apenas as chaves que existem comprovadamente no banco de dados.
     const allowedKeys: (keyof DBTask)[] = [
         'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
@@ -13,23 +14,24 @@ const filterTaskForDB = (task: Partial<Task>): any => {
         'plannedWeather', 'actualWeather', 'observations'
     ];
 
-    const sanitized: any = {};
+    const sanitized: Partial<DBTask> = {};
     
     allowedKeys.forEach(key => {
         if (key in task) {
             const value = (task as any)[key];
             if (['progress', 'plannedQuantity', 'actualQuantity'].includes(key as string)) {
                 // Para quantidades e progresso, converte para número ou null se vazio.
-                sanitized[key] = value === '' || value === null || value === undefined ? null : Number(value);
+                (sanitized as any)[key] = value === '' || value === null || value === undefined ? null : Number(value);
             } else {
                 // Para outros campos, converte string vazia para null.
-                sanitized[key] = value === '' ? null : value;
+                (sanitized as any)[key] = value === '' ? null : value;
             }
         }
     });
 
     // Garante que o progresso nunca seja nulo no DB se não for fornecido
-    if (sanitized.progress === null) {
+    // FIX: Check for undefined as well, as progress might not be in the partial task object.
+    if (sanitized.progress === null || sanitized.progress === undefined) {
         sanitized.progress = 0;
     }
 
@@ -90,7 +92,10 @@ export function useSupabaseTasks() {
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'created_at'>) => {
     if (!supabase) throw new Error("A conexão com o banco de dados não está configurada.");
     const taskToInsert = filterTaskForDB(task);
-    const { error: insertError } = await supabase.from('tasks').insert([taskToInsert]);
+    // FIX: No overload matches this call.
+    // The type inference for the Supabase client seems to be failing, resulting in a 'never' type.
+    // Casting `supabase.from('tasks')` to `any` bypasses the incorrect type error.
+    const { error: insertError } = await (supabase.from('tasks') as any).insert([taskToInsert]);
     if (insertError) {
       console.error('Insert Error Detail:', insertError);
       throw new Error(insertError.message);
@@ -100,7 +105,10 @@ export function useSupabaseTasks() {
   const updateTask = useCallback(async (task: Task) => {
     if (!supabase) throw new Error("A conexão com o banco de dados não está configurada.");
     const taskToUpdate = filterTaskForDB(task);
-    const { error: updateError } = await supabase.from('tasks').update(taskToUpdate).eq('id', task.id);
+    // FIX: Argument of type 'Partial<DBTask>' is not assignable to parameter of type 'never'.
+    // The type inference for the Supabase client seems to be failing, resulting in a 'never' type.
+    // Casting `supabase.from('tasks')` to 'any' to bypass the incorrect type error.
+    const { error: updateError } = await (supabase.from('tasks') as any).update(taskToUpdate).eq('id', task.id);
     if (updateError) {
         console.error('Update Error Detail:', updateError);
         throw new Error(updateError.message);

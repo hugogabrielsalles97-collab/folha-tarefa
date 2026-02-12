@@ -1,8 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// FIX: Per coding guidelines, initialize GoogleGenAI directly with process.env.API_KEY.
-// This resolves the 'import.meta.env' TypeScript error and aligns with the project's API key management strategy.
+// FIX: Adicionada verificação de robustez para garantir que a chave da API exista.
+if (!process.env.API_KEY) {
+  throw new Error("A chave da API do Gemini não foi encontrada. Configure a variável de ambiente API_KEY.");
+}
+
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
@@ -22,7 +25,6 @@ const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-pr
         console.error("Erro na API Gemini:", error);
         
         let errorMessage = "Ocorreu um erro desconhecido ao contatar a IA.";
-        // FIX: Improved error handling to be type-safe by checking for `instanceof Error`.
         if (error instanceof Error) {
             if (error.message.includes('API key not valid')) {
                 errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave nas suas variáveis de ambiente.";
@@ -176,7 +178,6 @@ export async function analyzeImageSafety(file: File): Promise<string> {
 
     try {
         const response = await ai.models.generateContent({
-            // FIX: Use a multimodal model suitable for image analysis, not an image generation model.
             model: 'gemini-3-flash-preview',
             contents: { parts: [imagePart, { text: prompt }] },
         });
@@ -188,7 +189,6 @@ export async function analyzeImageSafety(file: File): Promise<string> {
     } catch (error: unknown) {
         console.error("Erro na análise de imagem com Gemini:", error);
         let errorMessage = "Ocorreu um erro desconhecido ao analisar a imagem.";
-        // FIX: Improved error handling to be type-safe by checking for `instanceof Error`.
         if (error instanceof Error) {
             if (error.message.includes('429')) {
                 errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
