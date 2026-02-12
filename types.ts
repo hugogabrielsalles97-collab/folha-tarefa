@@ -32,6 +32,19 @@ export type TaskLevel = OAELevel | TerraplanagemLevel | ContencoesLevel | Pavime
 
 export type UnitOfMeasurement = 'un' | 'm' | 'm²' | 'm³' | 'kg' | 't';
 
+export interface ResourceItem {
+  id: string;
+  role?: string; // Para pessoal
+  name?: string; // Para equipamento
+  quantity: number; // Quantidade planejada
+  actualQuantity?: number; // Quantidade real
+}
+
+export interface Resources {
+  personnel: ResourceItem[];
+  equipment: ResourceItem[];
+}
+
 export interface Task {
   id: string;
   created_at?: string;
@@ -60,6 +73,7 @@ export interface Task {
   progress: number; // 0-100
   observations?: string;
   photo_urls?: string[];
+  resources?: Resources;
 }
 
 export interface ChatMessage {

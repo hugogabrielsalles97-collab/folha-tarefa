@@ -40,6 +40,17 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
   };
 
   const status = getStatusInfo(task);
+  
+  // Planned Resources
+  const personnelCount = task.resources?.personnel?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+  const equipmentCount = task.resources?.equipment?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+
+  // Actual Resources
+  const actualPersonnelCount = task.resources?.personnel?.reduce((sum, item) => sum + (item.actualQuantity || 0), 0) || 0;
+  const actualEquipmentCount = task.resources?.equipment?.reduce((sum, item) => sum + (item.actualQuantity || 0), 0) || 0;
+
+  const resourceTitle = `Equipe (Prev/Real): ${task.resources?.personnel?.map(p => `${p.role}: ${p.quantity}/${p.actualQuantity ?? '-'}`).join('; ') || 'N/A'}\nEquipamentos (Prev/Real): ${task.resources?.equipment?.map(e => `${e.name}: ${e.quantity}/${e.actualQuantity ?? '-'}`).join('; ') || 'N/A'}`;
+
 
   const getStatusStyle = () => {
     return `text-${status.colorClass} border-${status.colorClass}/40 bg-${status.colorClass}/10 shadow-[0_0_10px_rgba(255,255,255,0.1)] print:text-black print:border-black print:bg-white`;
@@ -57,24 +68,12 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
 
-      {/* Frente */}
+      {/* Local */}
       <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">FRENTE</span>
-        {task.frente || '---'}
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Local</span>
+        {task.frente || task.obraDeArte || task.corte || '---'}
       </div>
-
-      {/* OAE */}
-      <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">OAE</span>
-        {task.obraDeArte || '---'}
-      </div>
-
-      {/* LOCAL - Agora visível e identificado no mobile */}
-      <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">LOCAL</span>
-        {task.apoio || task.vao || task.corte || '---'}
-      </div>
-
+      
       {/* DATAS */}
       <div className="col-span-12 md:col-span-2 text-[10px] text-white/50 font-mono text-center leading-tight print:text-black print:font-bold">
         <div className="md:hidden grid grid-cols-2 gap-2 mb-1">
@@ -122,6 +121,36 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         </div>
       </div>
       
+      {/* RECURSOS */}
+      <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center print:text-black" title={resourceTitle}>
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Recursos</span>
+        <div className="flex justify-center items-stretch gap-3">
+          {/* Personnel */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-base">👨‍🔧</span>
+            <div className="grid grid-cols-[auto_1fr] gap-x-1.5 text-left leading-tight">
+              <span className="text-neon-orange/80 font-black">P:</span>
+              <span className="font-semibold">{personnelCount > 0 ? personnelCount : '---'}</span>
+              <span className="text-neon-green/80 font-black">R:</span>
+              <span className="font-semibold">{task.actualStartDate && personnelCount > 0 ? actualPersonnelCount : '---'}</span>
+            </div>
+          </div>
+
+          <div className="border-l border-white/10"></div>
+
+          {/* Equipment */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-base">🏗️</span>
+            <div className="grid grid-cols-[auto_1fr] gap-x-1.5 text-left leading-tight">
+              <span className="text-neon-orange/80 font-black">P:</span>
+              <span className="font-semibold">{equipmentCount > 0 ? equipmentCount : '---'}</span>
+              <span className="text-neon-green/80 font-black">R:</span>
+              <span className="font-semibold">{task.actualStartDate && equipmentCount > 0 ? actualEquipmentCount : '---'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* STATUS */}
       <div className="col-span-6 md:col-span-1 flex justify-center">
         <span className={`px-1 py-1 text-[8px] font-black border rounded-none tracking-tighter text-center w-full max-w-[100px] ${getStatusStyle()}`}>
@@ -195,11 +224,10 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
             {/* Cabeçalho Responsivo */}
             <div className="grid grid-cols-12 gap-y-2 md:gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" />
-                <SortableHeader title="Frente" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="OAE" sortKey="obraDeArte" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Local" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
+                <SortableHeader title="Local" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Datas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" centered />
                 <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
+                <SortableHeader title="Recursos" sortKey="resources" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />
                 {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
@@ -216,3 +244,4 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
 };
 
 export default TaskList;
+    

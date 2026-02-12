@@ -11,7 +11,7 @@ const filterTaskForDB = (task: Partial<Task>): any => {
         'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
         'actualStartDate', 'actualEndDate', 'progress',
         'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls',
-        'plannedWeather', 'actualWeather', 'observations'
+        'plannedWeather', 'actualWeather', 'observations', 'resources'
     ];
 
     const sanitized: any = {};

@@ -1,17 +1,9 @@
 
-import { GoogleGenAI } from "@google/genai";
-import { Task } from "../types";
+import { GoogleGenAI, Type } from "@google/genai";
+import { Task, Resources } from "../types";
 
-// AVISO: Incorporar chaves de API diretamente no código do lado do cliente não é seguro para produção.
-// O ideal é usar variáveis de ambiente e um backend para fazer as chamadas.
-// Para este projeto, usaremos a chave diretamente, conforme solicitado.
-const API_KEY = 'AIzaSyDkNBvZZletB2BXK3jWAhV21sr2D2tqlYw';
-
-if (!API_KEY) {
-    throw new Error("API Key do Gemini não encontrada.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// FIX: Initialize the GoogleGenAI client using the API key from environment variables as per the guidelines.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
      try {
@@ -25,16 +17,19 @@ const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-pr
         }
         return response.text;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro na API Gemini:", error);
         
         let errorMessage = "Ocorreu um erro desconhecido ao contatar a IA.";
-        if (error.message.includes('API key not valid')) {
-            errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
-        } else if (error.message.includes('429')) {
-             errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
-        } else {
-            errorMessage = error.message;
+        // FIX: Improved error handling to be type-safe by checking for `instanceof Error`.
+        if (error instanceof Error) {
+            if (error.message.includes('API key not valid')) {
+                errorMessage = "A chave de API configurada é inválida. Por favor, verifique a chave.";
+            } else if (error.message.includes('429')) {
+                errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
+            } else {
+                errorMessage = error.message;
+            }
         }
         
         throw new Error(errorMessage);
@@ -188,12 +183,89 @@ export async function analyzeImageSafety(file: File): Promise<string> {
             throw new Error("A IA não retornou uma análise de imagem válida.");
         }
         return response.text;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro na análise de imagem com Gemini:", error);
         let errorMessage = "Ocorreu um erro desconhecido ao analisar a imagem.";
-         if (error.message.includes('429')) {
-            errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
-        } else if (error.message) {
+        // FIX: Improved error handling to be type-safe by checking for `instanceof Error`.
+        if (error instanceof Error) {
+            if (error.message.includes('429')) {
+                errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+        }
+        throw new Error(errorMessage);
+    }
+}
+
+
+/**
+ * Sugere recursos (pessoal e equipamento) para uma tarefa de construção.
+ * @param taskName O nome/descrição da tarefa.
+ * @returns Um objeto com listas de pessoal e equipamentos sugeridos.
+ */
+export async function suggestResources(taskName: string): Promise<Resources> {
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            personnel: {
+                type: Type.ARRAY,
+                description: "Lista de colaboradores necessários, com função e quantidade.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        role: { type: Type.STRING, description: "A função do colaborador (ex: Carpinteiro, Armador)." },
+                        quantity: { type: Type.INTEGER, description: "A quantidade de colaboradores para essa função." }
+                    },
+                    required: ["role", "quantity"]
+                }
+            },
+            equipment: {
+                type: Type.ARRAY,
+                description: "Lista de máquinas e equipamentos necessários.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "O nome da máquina/equipamento (ex: Betoneira, Escavadeira)." },
+                        quantity: { type: Type.INTEGER, description: "A quantidade de unidades do equipamento." }
+                    },
+                    required: ["name", "quantity"]
+                }
+            }
+        },
+        required: ["personnel", "equipment"]
+    };
+
+    const prompt = `
+        Você é um planejador de obras sênior. Para a atividade de construção civil "${taskName}", gere uma lista de recursos necessários, incluindo pessoal (por função) e equipamentos. Forneça uma estimativa realista e comum para uma equipe padrão para este tipo de serviço.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+            }
+        });
+
+        if (!response.text) {
+            throw new Error("A IA não retornou uma sugestão de recursos válida.");
+        }
+        
+        const jsonResponse = JSON.parse(response.text);
+
+        if (!jsonResponse.personnel || !jsonResponse.equipment) {
+            throw new Error("A resposta da IA não contém os campos 'personnel' ou 'equipment'.");
+        }
+        
+        return jsonResponse as Resources;
+
+    } catch (error: unknown) {
+        console.error("Erro ao sugerir recursos com Gemini:", error);
+        let errorMessage = "Ocorreu um erro desconhecido ao sugerir recursos.";
+        if (error instanceof Error) {
             errorMessage = error.message;
         }
         throw new Error(errorMessage);

@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Task, Discipline, TaskLevel, OAELevel, ImageSafetyAnalysis } from '../types';
+import { Task, Discipline, TaskLevel, OAELevel, ImageSafetyAnalysis, Resources, ResourceItem } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS, FRENTES_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { EyeIcon, SparklesIcon, ShieldCheckIcon, WarningIcon } from './icons';
+import { EyeIcon, SparklesIcon, ShieldCheckIcon, WarningIcon, DeleteIcon } from './icons';
 import { getWeatherForecast, getHistoricalWeather } from '../services/weatherService';
-import { analyzeObservations, analyzeImageSafety } from '../services/geminiService';
+import { analyzeObservations, analyzeImageSafety, suggestResources } from '../services/geminiService';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -107,6 +107,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     progress: 0,
     observations: '',
     photo_urls: [],
+    resources: { personnel: [], equipment: [] },
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,6 +120,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const [aiAnalysisResult, setAiAnalysisResult] = useState('');
   const [aiAnalysisError, setAiAnalysisError] = useState('');
   const [safetyAnalyses, setSafetyAnalyses] = useState<Record<string, ImageSafetyAnalysis>>({});
+  const [isSuggestingResources, setIsSuggestingResources] = useState(false);
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,10 +154,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status, analysis: analysisResult } }));
     } catch (error) {
-      // FIX: Assuming catch variable is 'unknown' due to strict TypeScript settings.
-      // This prevents a type error on `error.message` and ensures the state type remains consistent,
-      // which likely resolves the cascading type error on line 578.
-      const message = error instanceof Error ? error.message : String(error);
+      // The error object is of type 'unknown' and its properties cannot be accessed directly.
+      // We must first check if it's an instance of Error to safely access the message.
+      const message = error instanceof Error ? error.message : "An unknown error occurred during image safety analysis.";
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
     }
   };
@@ -179,8 +181,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [url]: { status, analysis: analysisResult } }));
     } catch (error) {
-      // FIX: Consistently handle 'unknown' catch variable type.
-      const message = error instanceof Error ? error.message : String(error);
+      // The error object is of type 'unknown' and its properties cannot be accessed directly.
+      // We must first check if it's an instance of Error to safely access the message.
+      const message = error instanceof Error ? error.message : "An unknown error occurred while analyzing the existing image.";
       setSafetyAnalyses(prev => ({ ...prev, [url]: { status: 'error', analysis: message } }));
     }
   };
@@ -206,12 +209,19 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
   useEffect(() => {
     if (existingTask) {
-      setTask({ 
+        const resources = existingTask.resources || { personnel: [], equipment: [] };
+        // Garante que recursos antigos sem ID recebam um
+        const sanitizedResources = {
+            personnel: resources.personnel.map(p => ({ ...p, id: p.id || crypto.randomUUID() })),
+            equipment: resources.equipment.map(e => ({ ...e, id: e.id || crypto.randomUUID() })),
+        };
+        setTask({ 
           ...existingTask, 
           observations: existingTask.observations || '',
           photo_urls: existingTask.photo_urls || [],
           plannedWeather: existingTask.plannedWeather || '',
           actualWeather: existingTask.actualWeather || '',
+          resources: sanitizedResources,
       });
     }
   }, [existingTask]);
@@ -375,12 +385,85 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         const result = await analyzeObservations(task.observations);
         setAiAnalysisResult(result);
     } catch (error) {
-        // FIX: Consistently handle 'unknown' catch variable type.
-        const message = error instanceof Error ? error.message : String(error);
+        // FIX: Safely handle unknown error type.
+        const message = error instanceof Error ? error.message : "An unknown error occurred during AI analysis.";
         setAiAnalysisError(`Erro na análise: ${message}`);
     } finally {
         setIsAnalyzingAI(false);
     }
+  };
+  
+  const handleSuggestResources = async () => {
+    if (!task.name || isSuggestingResources) return;
+    setIsSuggestingResources(true);
+    setAiAnalysisError('');
+    try {
+        const suggestedResources = await suggestResources(task.name);
+        setTask(prev => ({
+            ...prev,
+            resources: {
+                personnel: (suggestedResources.personnel || []).map(p => ({...p, id: crypto.randomUUID()})),
+                equipment: (suggestedResources.equipment || []).map(e => ({...e, id: crypto.randomUUID()})),
+            }
+        }));
+    } catch (error) {
+        // FIX: Safely handle unknown error type.
+        const message = error instanceof Error ? error.message : "Erro desconhecido na sugestão de recursos.";
+        setAiAnalysisError(`Erro na sugestão: ${message}`);
+    } finally {
+        setIsSuggestingResources(false);
+    }
+  };
+  
+  const handleResourceChange = (type: 'personnel' | 'equipment', index: number, field: 'role' | 'name' | 'quantity', value: string | number) => {
+    setTask(prev => {
+        const resources = { ...(prev.resources || { personnel: [], equipment: [] }) };
+        const items: ResourceItem[] = [...(resources[type] || [])];
+        const updatedItem = { ...items[index] };
+
+        if (field === 'quantity') {
+            updatedItem.quantity = Number(value) >= 0 ? Number(value) : 0;
+        } else {
+            (updatedItem as any)[field] = value;
+        }
+
+        items[index] = updatedItem;
+        return { ...prev, resources: { ...resources, [type]: items } };
+    });
+  };
+
+  const handleActualQuantityChange = (type: 'personnel' | 'equipment', index: number, value: string) => {
+    setTask(prev => {
+        const resources = { ...(prev.resources || { personnel: [], equipment: [] }) };
+        const items: ResourceItem[] = [...(resources[type] || [])];
+        const itemToUpdate = { ...items[index] };
+
+        const numValue = Number(value);
+        itemToUpdate.actualQuantity = value === '' || isNaN(numValue) ? undefined : numValue;
+        
+        items[index] = itemToUpdate;
+        return { ...prev, resources: { ...resources, [type]: items } };
+    });
+  };
+
+  const addResource = (type: 'personnel' | 'equipment') => {
+    setTask(prev => {
+        const resources = { ...(prev.resources || { personnel: [], equipment: [] }) };
+        const items = [...(resources[type] || [])];
+        const newItem: ResourceItem = type === 'personnel' 
+            ? { id: crypto.randomUUID(), role: '', quantity: 1 } 
+            : { id: crypto.randomUUID(), name: '', quantity: 1 };
+        return { ...prev, resources: { ...resources, [type]: [...items, newItem] } };
+    });
+  };
+
+  const removeResource = (type: 'personnel' | 'equipment', index: number) => {
+    setTask(prev => {
+        const resources = { ...(prev.resources || { personnel: [], equipment: [] }) };
+        const items = [...(resources[type] || [])];
+        items.splice(index, 1);
+        return { ...prev, resources: { ...resources, [type]: items } };
+    });
   };
 
 
@@ -474,6 +557,56 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             {UNIDADE_MEDIDA_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
         </SelectField>
       </div>
+      
+      <div className="bg-white/[0.03] p-3 border-l-4 border-neon-magenta">
+        <div className="flex justify-between items-center mb-3">
+            <p className="text-[10px] font-black text-neon-magenta uppercase tracking-widest">Recursos Alocados (Planejamento)</p>
+            {!isViewer && !isProductionUser && (
+                <button 
+                    type="button"
+                    onClick={handleSuggestResources}
+                    disabled={isSuggestingResources || !task.name}
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-dark-bg border border-neon-magenta text-neon-magenta shadow-neon-magenta hover:bg-neon-magenta hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                    {isSuggestingResources ? (
+                        <>
+                           <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Sugerindo...
+                        </>
+                    ) : (
+                        <><SparklesIcon className="h-4 w-4"/> Sugerir com IA</>
+                    )}
+                </button>
+            )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            {/* Personnel Section */}
+            <div>
+                <p className="text-xs font-bold text-white/70 mb-2">Equipe</p>
+                {(task.resources?.personnel || []).map((p, index) => (
+                    <div key={p.id} className="flex items-center gap-2 mb-1">
+                        <input type="text" placeholder="Função" value={p.role || ''} onChange={(e) => handleResourceChange('personnel', index, 'role', e.target.value)} disabled={isViewer || isProductionUser} className="w-full bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-cyan disabled:bg-white/5" />
+                        <input type="number" placeholder="Qtd" value={p.quantity} min="1" onChange={(e) => handleResourceChange('personnel', index, 'quantity', e.target.value)} disabled={isViewer || isProductionUser} className="w-20 bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-cyan disabled:bg-white/5" />
+                        {!isViewer && !isProductionUser && <button type="button" onClick={() => removeResource('personnel', index)} className="p-1 text-white/20 hover:text-neon-red"><DeleteIcon /></button>}
+                    </div>
+                ))}
+                 {!isViewer && !isProductionUser && <button type="button" onClick={() => addResource('personnel')} className="text-neon-cyan text-[10px] font-black uppercase tracking-widest mt-2 hover:text-white">+ Adicionar Colaborador</button>}
+            </div>
+            {/* Equipment Section */}
+            <div>
+                <p className="text-xs font-bold text-white/70 mb-2">Equipamentos</p>
+                {(task.resources?.equipment || []).map((e, index) => (
+                    <div key={e.id} className="flex items-center gap-2 mb-1">
+                        <input type="text" placeholder="Equipamento" value={e.name || ''} onChange={(e) => handleResourceChange('equipment', index, 'name', e.target.value)} disabled={isViewer || isProductionUser} className="w-full bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-cyan disabled:bg-white/5" />
+                        <input type="number" placeholder="Qtd" value={e.quantity} min="1" onChange={(e) => handleResourceChange('equipment', index, 'quantity', e.target.value)} disabled={isViewer || isProductionUser} className="w-20 bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-cyan disabled:bg-white/5" />
+                        {!isViewer && !isProductionUser && <button type="button" onClick={() => removeResource('equipment', index)} className="p-1 text-white/20 hover:text-neon-red"><DeleteIcon /></button>}
+                    </div>
+                ))}
+                {!isViewer && !isProductionUser && <button type="button" onClick={() => addResource('equipment')} className="text-neon-cyan text-[10px] font-black uppercase tracking-widest mt-2 hover:text-white">+ Adicionar Equipamento</button>}
+            </div>
+        </div>
+      </div>
+
 
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-orange">
         <p className="text-[10px] font-black text-neon-orange uppercase mb-3 tracking-widest">Cronograma Planejado</p>
@@ -502,6 +635,36 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             </div>
         )}
       </div>
+
+      {task.actualStartDate && (
+        <div className="bg-white/[0.03] p-3 border-l-4 border-neon-green">
+            <p className="text-[10px] font-black text-neon-green uppercase tracking-widest mb-3">Execução de Recursos</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                {/* Real Personnel */}
+                <div>
+                    <p className="text-xs font-bold text-white/70 mb-2">Equipe Real</p>
+                    {(task.resources?.personnel || []).map((p, index) => (
+                        <div key={p.id} className="flex items-center gap-2 mb-1">
+                            <span className="flex-1 text-xs font-mono text-white/80 p-1.5">{p.role || 'Função não definida'}</span>
+                            <input type="number" placeholder="Qtd Real" value={p.actualQuantity ?? ''} min="0" onChange={(e) => handleActualQuantityChange('personnel', index, e.target.value)} disabled={isViewer} className="w-24 bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-green" />
+                        </div>
+                    ))}
+                    {(task.resources?.personnel || []).length === 0 && <p className="text-xs text-white/20 font-mono">Nenhuma equipe planejada.</p>}
+                </div>
+                 {/* Real Equipment */}
+                 <div>
+                    <p className="text-xs font-bold text-white/70 mb-2">Equipamentos Real</p>
+                    {(task.resources?.equipment || []).map((e, index) => (
+                        <div key={e.id} className="flex items-center gap-2 mb-1">
+                            <span className="flex-1 text-xs font-mono text-white/80 p-1.5">{e.name || 'Equipamento não definido'}</span>
+                            <input type="number" placeholder="Qtd Real" value={e.actualQuantity ?? ''} min="0" onChange={(e) => handleActualQuantityChange('equipment', index, e.target.value)} disabled={isViewer} className="w-24 bg-dark-bg border border-dark-border p-1.5 font-mono text-xs text-white placeholder:text-white/20 focus:border-neon-green" />
+                        </div>
+                    ))}
+                    {(task.resources?.equipment || []).length === 0 && <p className="text-xs text-white/20 font-mono">Nenhum equipamento planejado.</p>}
+                </div>
+            </div>
+        </div>
+      )}
       
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
         <p className="text-[10px] font-black text-neon-cyan uppercase mb-3 tracking-widest">Registro Fotográfico & Análise de Segurança</p>

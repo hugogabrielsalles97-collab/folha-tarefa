@@ -166,7 +166,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-sans">
       <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 border-b border-dark-border pb-8">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <div className="bg-neon-orange p-3 text-black font-black text-2xl rotate-[-2deg] shadow-neon-orange">
             NSA
           </div>

@@ -1,7 +1,7 @@
 
 
 import { createClient } from '@supabase/supabase-js';
-import { Discipline, TaskLevel, UnitOfMeasurement } from '../types';
+import { Discipline, TaskLevel, UnitOfMeasurement, Resources } from '../types';
 
 export interface DBTask {
   id: string;
@@ -26,6 +26,7 @@ export interface DBTask {
   plannedWeather?: string;
   actualWeather?: string;
   observations?: string;
+  resources?: Resources;
 }
 
 export interface Database {
