@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Task, Discipline, TaskLevel, OAELevel } from '../types';
+import { Task, Discipline, TaskLevel, OAELevel, ImageSafetyAnalysis } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS, FRENTES_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { EyeIcon, SparklesIcon } from './icons';
+import { EyeIcon, SparklesIcon, ShieldCheckIcon, WarningIcon } from './icons';
 import { getWeatherForecast, getHistoricalWeather } from '../services/weatherService';
-import { analyzeObservations } from '../services/geminiService';
+import { analyzeObservations, analyzeImageSafety } from '../services/geminiService';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -118,6 +118,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState('');
   const [aiAnalysisError, setAiAnalysisError] = useState('');
+  const [safetyAnalyses, setSafetyAnalyses] = useState<Record<string, ImageSafetyAnalysis>>({});
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,6 +143,46 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     setTask(prev => ({ ...prev, photo_urls: [...(prev.photo_urls || []), publicUrl] }));
     setIsUploading(false);
     e.target.value = ''; // Limpa o input
+
+    // Inicia a análise de segurança da imagem
+    setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'analyzing' } }));
+    try {
+      const analysisResult = await analyzeImageSafety(file);
+      const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
+      setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status, analysis: analysisResult } }));
+    } catch (error) {
+      // FIX: Assuming catch variable is 'unknown' due to strict TypeScript settings.
+      // This prevents a type error on `error.message` and ensures the state type remains consistent,
+      // which likely resolves the cascading type error on line 578.
+      const message = error instanceof Error ? error.message : String(error);
+      setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
+    }
+  };
+
+  const handleAnalyzeExistingImage = async (url: string) => {
+    if (Object.values(safetyAnalyses).some(a => a.status === 'analyzing')) {
+      alert("Aguarde a análise atual ser concluída antes de iniciar outra.");
+      return;
+    }
+    
+    setSafetyAnalyses(prev => ({ ...prev, [url]: { status: 'analyzing' } }));
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Não foi possível buscar a imagem para análise.');
+      
+      const blob = await response.blob();
+      const fileName = url.substring(url.lastIndexOf('/') + 1) || 'image.jpg';
+      const file = new File([blob], fileName, { type: blob.type });
+
+      const analysisResult = await analyzeImageSafety(file);
+      const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
+      setSafetyAnalyses(prev => ({ ...prev, [url]: { status, analysis: analysisResult } }));
+    } catch (error) {
+      // FIX: Consistently handle 'unknown' catch variable type.
+      const message = error instanceof Error ? error.message : String(error);
+      setSafetyAnalyses(prev => ({ ...prev, [url]: { status: 'error', analysis: message } }));
+    }
   };
 
   const handleDeletePhoto = async (url: string) => {
@@ -156,6 +197,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     }
 
     setTask(prev => ({ ...prev, photo_urls: (prev.photo_urls || []).filter(u => u !== url) }));
+    setSafetyAnalyses(prev => {
+        const newAnalyses = { ...prev };
+        delete newAnalyses[url];
+        return newAnalyses;
+    });
   };
 
   useEffect(() => {
@@ -328,8 +374,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     try {
         const result = await analyzeObservations(task.observations);
         setAiAnalysisResult(result);
-    } catch (error: any) {
-        setAiAnalysisError(`Erro na análise: ${error.message}`);
+    } catch (error) {
+        // FIX: Consistently handle 'unknown' catch variable type.
+        const message = error instanceof Error ? error.message : String(error);
+        setAiAnalysisError(`Erro na análise: ${message}`);
     } finally {
         setIsAnalyzingAI(false);
     }
@@ -456,7 +504,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       </div>
       
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
-        <p className="text-[10px] font-black text-neon-cyan uppercase mb-3 tracking-widest">Registro Fotográfico</p>
+        <p className="text-[10px] font-black text-neon-cyan uppercase mb-3 tracking-widest">Registro Fotográfico & Análise de Segurança</p>
         <input id="photo-upload" type="file" className="hidden" onChange={handleFileUpload} accept="image/*" disabled={isUploading || isViewer} />
         
         {(task.photo_urls || []).length === 0 ? (
@@ -490,16 +538,62 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
             )
         ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {(task.photo_urls || []).map((url, index) => (
-                    <div key={url} className="relative group aspect-square cursor-pointer" onClick={() => onViewPhotos(task.photo_urls || [], index)}>
-                        <img src={url} alt="Registro da tarefa" className="w-full h-full object-cover border-2 border-dark-border group-hover:border-neon-cyan transition-colors"/>
-                        {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
-                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto(url); }} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta z-10" title="Remover foto">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        )}
-                    </div>
-                ))}
+                {(task.photo_urls || []).map((url, index) => {
+                    const analysis = safetyAnalyses[url];
+                    let statusIndicator = null;
+                    if (analysis) {
+                        if (analysis.status === 'analyzing') {
+                            statusIndicator = (
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-center text-white text-[8px] font-black uppercase tracking-widest animate-pulse">
+                                    ANALISANDO...
+                                </div>
+                            );
+                        } else if (analysis.status === 'safe') {
+                            statusIndicator = (
+                                <div title={analysis.analysis} className="absolute bottom-0 left-0 right-0 bg-neon-green/80 p-1 flex items-center justify-center gap-1 text-black text-[8px] font-black uppercase tracking-widest">
+                                    <ShieldCheckIcon className="h-3 w-3" />
+                                    SEGURO
+                                </div>
+                            );
+                        } else if (analysis.status === 'unsafe') {
+                            statusIndicator = (
+                                <div title={analysis.analysis} className="absolute bottom-0 left-0 right-0 bg-neon-red/80 p-1 flex items-center justify-center gap-1 text-white text-[8px] font-black uppercase tracking-widest">
+                                    <WarningIcon className="h-3 w-3" />
+                                    INSEGURO
+                                </div>
+                            );
+                        } else if (analysis.status === 'error') {
+                            statusIndicator = (
+                                <div title={analysis.analysis} className="absolute bottom-0 left-0 right-0 bg-neon-orange/80 p-1 flex items-center justify-center gap-1 text-black text-[8px] font-black uppercase tracking-widest">
+                                    ERRO
+                                </div>
+                            );
+                        }
+                    }
+
+                    return (
+                        <div key={url} className="relative group aspect-square">
+                            <img onClick={() => onViewPhotos(task.photo_urls || [], index)} src={url} alt={`Registro da tarefa ${index + 1}`} className="w-full h-full object-cover border-2 border-dark-border group-hover:border-neon-cyan transition-colors cursor-pointer"/>
+                            {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+                                <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhoto(url); }} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta z-10" title="Remover foto">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            )}
+                            {!analysis && (isProductionUser || role === 'PLANEJADOR') && !isViewer && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleAnalyzeExistingImage(url); }}
+                                    disabled={Object.values(safetyAnalyses).some(a => a.status === 'analyzing')}
+                                    className="absolute bottom-1 left-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta z-10 disabled:opacity-50 disabled:cursor-wait"
+                                    title="Analisar Segurança com IA"
+                                >
+                                    <SparklesIcon className="h-4 w-4" />
+                                </button>
+                            )}
+                            {statusIndicator}
+                        </div>
+                    );
+                })}
                 {(isProductionUser || role === 'PLANEJADOR') && !isViewer && (
                     <label htmlFor="photo-upload" className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-dark-border hover:border-neon-cyan transition-colors cursor-pointer bg-dark-bg group">
                         {isUploading ? (

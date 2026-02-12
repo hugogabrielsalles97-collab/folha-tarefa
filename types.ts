@@ -66,3 +66,8 @@ export interface ChatMessage {
   sender: 'user' | 'ai' | 'error';
   text: string;
 }
+
+export interface ImageSafetyAnalysis {
+  status: 'analyzing' | 'safe' | 'unsafe' | 'error';
+  analysis?: string;
+}

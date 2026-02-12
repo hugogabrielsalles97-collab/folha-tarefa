@@ -13,7 +13,7 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const callGemini = async (prompt: string, modelName: string = 'gemini-flash-latest'): Promise<string> => {
+const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
      try {
         const response = await ai.models.generateContent({
             model: modelName,
@@ -141,4 +141,61 @@ export async function queryProjectData(tasks: Task[], question: string): Promise
         Sua Resposta:
     `;
     return callGemini(prompt);
+}
+
+/**
+ * Analisa uma imagem de canteiro de obras em busca de riscos de segurança.
+ * @param file O arquivo de imagem a ser analisado.
+ * @returns O parecer de segurança da IA.
+ */
+export async function analyzeImageSafety(file: File): Promise<string> {
+    const imagePart = {
+        inlineData: {
+            mimeType: file.type,
+            data: await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                reader.readAsDataURL(file);
+            }),
+        },
+    };
+
+    const prompt = `
+        Você é um inspetor de segurança do trabalho altamente experiente, especializado em canteiros de obras de construção civil pesada. Sua tarefa é analisar a imagem fornecida e identificar potenciais riscos de segurança.
+
+        Analise a imagem focando nos seguintes pontos, mas não se limite a eles:
+        - **EPI (Equipamento de Proteção Individual):** Verifique se todos os trabalhadores estão usando capacete, óculos de segurança, luvas, botas e coletes de alta visibilidade, conforme apropriado para a tarefa.
+        - **Trabalho em Altura:** Inspecione andaimes, plataformas, escadas e o uso de cintos de segurança e linhas de vida.
+        - **Equipamentos e Maquinário:** Verifique a operação segura de máquinas pesadas, isolamento de áreas de risco e condições dos equipamentos.
+        - **Escavações:** Observe a estabilidade de taludes e a presença de escoramento.
+        - **Organização do Canteiro (Housekeeping):** Procure por materiais desorganizados, obstruções de passagem e riscos de tropeço.
+
+        **Formato da Resposta:**
+        - Comece sua resposta com "PARECER DE SEGURANÇA:".
+        - Se a imagem aparenta estar segura e em conformidade com as boas práticas, escreva "SEGURO". Em seguida, adicione uma breve justificativa (ex: "Trabalhadores utilizando EPI completo.").
+        - Se identificar QUALQUER risco, escreva "INSEGURO". Em seguida, liste os problemas encontrados em formato de tópicos curtos e diretos.
+
+        Seja objetivo e conciso. Sua análise é crucial para a prevenção de acidentes.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: { parts: [imagePart, { text: prompt }] },
+        });
+        
+        if (!response.text) {
+            throw new Error("A IA não retornou uma análise de imagem válida.");
+        }
+        return response.text;
+    } catch (error: any) {
+        console.error("Erro na análise de imagem com Gemini:", error);
+        let errorMessage = "Ocorreu um erro desconhecido ao analisar a imagem.";
+         if (error.message.includes('429')) {
+            errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        throw new Error(errorMessage);
+    }
 }
