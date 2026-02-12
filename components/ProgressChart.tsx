@@ -7,7 +7,7 @@ interface ProgressChartProps {
   tasks: Task[];
 }
 
-const COLORS = ['#00f3ff', '#ff00ff', '#39ff14'];
+const COLORS = ['#00f3ff', '#ff00ff', '#39ff14', '#ff8c00'];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -27,6 +27,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ tasks }) => {
       [Discipline.OAE]: { total: 0, count: 0 },
       [Discipline.TERRAPLANAGEM]: { total: 0, count: 0 },
       [Discipline.CONTENCOES]: { total: 0, count: 0 },
+      [Discipline.PAVIMENTACAO]: { total: 0, count: 0 },
     };
 
     tasks.forEach(task => {

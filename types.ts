@@ -3,6 +3,7 @@ export enum Discipline {
   OAE = 'Obras de Arte Especiais',
   TERRAPLANAGEM = 'Terraplanagem',
   CONTENCOES = 'Contenções',
+  PAVIMENTACAO = 'Pavimentação',
 }
 
 export enum OAELevel {
@@ -23,7 +24,11 @@ export enum ContencoesLevel {
   CONCRETO_PROJETADO = 'Concreto projetado',
 }
 
-export type TaskLevel = OAELevel | TerraplanagemLevel | ContencoesLevel | '';
+export enum PavimentacaoLevel {
+  PAVIMENTACAO = 'Pavimentação',
+}
+
+export type TaskLevel = OAELevel | TerraplanagemLevel | ContencoesLevel | PavimentacaoLevel | '';
 
 export type UnitOfMeasurement = 'un' | 'm' | 'm²' | 'm³' | 'kg' | 't';
 

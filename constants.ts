@@ -1,10 +1,16 @@
-import { Discipline, OAELevel, TerraplanagemLevel, ContencoesLevel, UnitOfMeasurement } from './types';
+
+import { Discipline, OAELevel, TerraplanagemLevel, ContencoesLevel, PavimentacaoLevel, UnitOfMeasurement } from './types';
 
 export const DISCIPLINE_LEVELS: Record<Discipline, string[]> = {
   [Discipline.OAE]: Object.values(OAELevel),
   [Discipline.TERRAPLANAGEM]: Object.values(TerraplanagemLevel),
   [Discipline.CONTENCOES]: Object.values(ContencoesLevel),
+  [Discipline.PAVIMENTACAO]: Object.values(PavimentacaoLevel),
 };
+
+export const FRENTES_OPTIONS = [
+  'FT01A', 'FT01B', 'FT02', 'FT03A', 'FT03B', 'FT03C', 'FT04', 'FT05', 'FT06', 'FT07', 'FT08', 'FT09', 'FT10', 'FT11', 'FT12', 'FT13', 'FT14', 'FT15', 'FT16', 'FT17', 'FT18', 'FT19', 'FT20', 'FT21', 'FT22', 'FT23', 'FT24', 'FT25', 'FT26', 'FT27', 'FT28A', 'FT28B', 'FT29', 'FT30', 'FT31', 'FT32', 'FT32A', 'FT32B', 'FT33', 'FT34'
+];
 
 export const OBRAS_DE_ARTE_OPTIONS = [
   'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10',
@@ -86,8 +92,19 @@ export const SUPERESTRUTURA_TASK_NAMES = [
   'Fabricação de prélaje',
 ];
 
+export const PAVIMENTACAO_TASK_NAMES = [
+  'Regularização de subleito',
+  'Execução de macadame',
+  'Execução de BGTC',
+  'Execução de pintura de cura',
+  'Execução de BGMC',
+  'Execução de CBUQ 1° camada',
+  'Execução de CBUQ 2° camada',
+];
+
 export const OAE_TASK_NAMES_BY_LEVEL: Record<string, string[]> = {
     [OAELevel.FUNDACOES]: FUNDACOES_TASK_NAMES,
     [OAELevel.MESOESTRUTURA]: MESOESTRUTURA_TASK_NAMES,
     [OAELevel.SUPERESTRUTURA]: SUPERESTRUTURA_TASK_NAMES,
+    [PavimentacaoLevel.PAVIMENTACAO]: PAVIMENTACAO_TASK_NAMES,
 };
