@@ -1,7 +1,8 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY.
+// FIX: Using process.env.API_KEY to align with coding guidelines and fix import.meta.env error.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 

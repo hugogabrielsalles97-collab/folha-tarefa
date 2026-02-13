@@ -221,12 +221,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
     // Inicia a análise de segurança da imagem
     setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'analyzing' } }));
+    // FIX: Property 'status' does not exist on type 'unknown'. Safely handle error to get message.
     try {
       const analysisResult = await analyzeImageSafety(file);
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status, analysis: analysisResult } }));
     } catch (err: unknown) {
-      // Fix: Safely process unknown error types to provide a clear user-facing error message.
       const message = err instanceof Error ? err.message : String(err);
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
     }
@@ -484,11 +484,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     setAiAnalysisResult('');
     setAiAnalysisError('');
 
+    // FIX: Property 'status' does not exist on type 'unknown'. Safely handle error to get message.
     try {
         const result = await analyzeObservations(task.observations);
         setAiAnalysisResult(result);
     } catch (err: unknown) {
-        // Fix: Safely process unknown error types to provide a clear user-facing error message.
         const message = err instanceof Error ? err.message : String(err);
         setAiAnalysisError(`Erro na análise: ${message}`);
     } finally {
