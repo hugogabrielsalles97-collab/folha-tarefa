@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Task, Discipline, TaskLevel, OAELevel, ImageSafetyAnalysis } from '../types';
+import { Task, Discipline, TaskLevel, OAELevel, ImageSafetyAnalysis, Resources, Personnel, Machine } from '../types';
 import { DISCIPLINE_LEVELS, OBRAS_DE_ARTE_OPTIONS, APOIOS_OPTIONS, VAOS_OPTIONS, OAE_TASK_NAMES_BY_LEVEL, UNIDADE_MEDIDA_OPTIONS, FRENTES_OPTIONS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { EyeIcon, SparklesIcon, ShieldCheckIcon, WarningIcon } from './icons';
+import { EyeIcon, SparklesIcon, ShieldCheckIcon, WarningIcon, AddIcon, DeleteIcon } from './icons';
 import { getWeatherForecast, getHistoricalWeather } from '../services/weatherService';
-import { analyzeObservations, analyzeImageSafety } from '../services/geminiService';
+import { analyzeObservations, analyzeImageSafety, suggestResources } from '../services/geminiService';
 
 interface TaskFormProps {
   onSave: (task: Task) => void;
@@ -81,6 +81,72 @@ const TextAreaField = ({ label, name, value, onChange, disabled, placeholder }: 
     );
 };
 
+const ResourceInputSection: React.FC<{
+  title: string;
+  resources: Resources;
+  onResourceChange: (newResources: Resources) => void;
+  isEditable: boolean;
+  quantityOnly?: boolean;
+}> = ({ title, resources, onResourceChange, isEditable, quantityOnly = false }) => {
+  
+  const handlePersonnelChange = (index: number, field: keyof Personnel, value: string | number) => {
+    const updatedPersonnel = resources.personnel.map((person, i) => {
+      if (i === index) {
+        const updatedValue = field === 'quantity' ? (value === '' ? 0 : Number(value)) : value;
+        return { ...person, [field]: updatedValue };
+      }
+      return person;
+    });
+    onResourceChange({ ...resources, personnel: updatedPersonnel });
+  };
+  
+  const handleMachineChange = (index: number, field: keyof Machine, value: string | number) => {
+    const updatedMachines = resources.machines.map((machine, i) => {
+      if (i === index) {
+        const updatedValue = field === 'quantity' ? (value === '' ? 0 : Number(value)) : value;
+        return { ...machine, [field]: updatedValue };
+      }
+      return machine;
+    });
+    onResourceChange({ ...resources, machines: updatedMachines });
+  };
+
+  const addPersonnel = () => onResourceChange({ ...resources, personnel: [...resources.personnel, { role: '', quantity: 1 }] });
+  const removePersonnel = (index: number) => onResourceChange({ ...resources, personnel: resources.personnel.filter((_, i) => i !== index) });
+
+  const addMachine = () => onResourceChange({ ...resources, machines: [...resources.machines, { name: '', quantity: 1 }] });
+  const removeMachine = (index: number) => onResourceChange({ ...resources, machines: resources.machines.filter((_, i) => i !== index) });
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+      {/* Pessoal */}
+      <div>
+        <h4 className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2 border-b border-dark-border pb-1">{title} - Pessoal</h4>
+        {resources.personnel.map((p, index) => (
+          <div key={index} className="flex items-center gap-2 mb-2">
+            <input type="text" placeholder="Função" value={p.role} onChange={(e) => handlePersonnelChange(index, 'role', e.target.value)} disabled={!isEditable || quantityOnly} className="flex-grow bg-dark-bg border border-dark-border p-1.5 text-xs font-mono disabled:opacity-50" />
+            <input type="number" placeholder="Qtd" value={p.quantity} onChange={(e) => handlePersonnelChange(index, 'quantity', e.target.value)} disabled={!isEditable} className="w-16 bg-dark-bg border border-dark-border p-1.5 text-xs font-mono disabled:opacity-50" min="0" />
+            {isEditable && !quantityOnly && <button type="button" onClick={() => removePersonnel(index)} className="p-1 text-neon-red/50 hover:text-neon-red"><DeleteIcon /></button>}
+          </div>
+        ))}
+        {isEditable && !quantityOnly && <button type="button" onClick={addPersonnel} className="flex items-center gap-1 text-xs text-neon-cyan/70 hover:text-neon-cyan mt-1"><AddIcon /> Adicionar Pessoal</button>}
+      </div>
+      {/* Máquinas */}
+      <div>
+        <h4 className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2 border-b border-dark-border pb-1">{title} - Máquinas</h4>
+        {resources.machines.map((e, index) => (
+          <div key={index} className="flex items-center gap-2 mb-2">
+            <input type="text" placeholder="Nome" value={e.name} onChange={(e) => handleMachineChange(index, 'name', e.target.value)} disabled={!isEditable || quantityOnly} className="flex-grow bg-dark-bg border border-dark-border p-1.5 text-xs font-mono disabled:opacity-50" />
+            <input type="number" placeholder="Qtd" value={e.quantity} onChange={(e) => handleMachineChange(index, 'quantity', e.target.value)} disabled={!isEditable} className="w-16 bg-dark-bg border border-dark-border p-1.5 text-xs font-mono disabled:opacity-50" min="0" />
+            {isEditable && !quantityOnly && <button type="button" onClick={() => removeMachine(index)} className="p-1 text-neon-red/50 hover:text-neon-red"><DeleteIcon /></button>}
+          </div>
+        ))}
+        {isEditable && !quantityOnly && <button type="button" onClick={addMachine} className="flex items-center gap-1 text-xs text-neon-cyan/70 hover:text-neon-cyan mt-1"><AddIcon /> Adicionar Máquina</button>}
+      </div>
+    </div>
+  );
+};
+
 const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, allTasks, onViewPhotos }) => {
   const { role } = useAuth();
   const isProductionUser = role === 'PRODUÇÃO';
@@ -107,6 +173,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     progress: 0,
     observations: '',
     photo_urls: [],
+    plannedResources: { personnel: [], machines: [] },
+    actualResources: { personnel: [], machines: [] },
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,6 +187,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const [aiAnalysisResult, setAiAnalysisResult] = useState('');
   const [aiAnalysisError, setAiAnalysisError] = useState('');
   const [safetyAnalyses, setSafetyAnalyses] = useState<Record<string, ImageSafetyAnalysis>>({});
+  const [isSuggestingResources, setIsSuggestingResources] = useState(false);
 
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,15 +224,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       const analysisResult = await analyzeImageSafety(file);
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status, analysis: analysisResult } }));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred during image safety analysis.";
+    } catch (err) {
+      // FIX: Standardize exception handling in catch blocks to safely process errors of type 'unknown'.
+      const message = err instanceof Error ? err.message : String(err);
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
     }
   };
 
   const handleAnalyzeExistingImage = async (url: string) => {
-    // Fix: Cast Object.values to ImageSafetyAnalysis[] to avoid 'unknown' type error
-    if ((Object.values(safetyAnalyses) as ImageSafetyAnalysis[]).some(a => a.status === 'analyzing')) {
+    if (Object.values(safetyAnalyses).some(a => a.status === 'analyzing')) {
       alert("Aguarde a análise atual ser concluída antes de iniciar outra.");
       return;
     }
@@ -181,8 +250,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       const analysisResult = await analyzeImageSafety(file);
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [url]: { status, analysis: analysisResult } }));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred while analyzing the existing image.";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err) || "An unknown error occurred while analyzing the existing image.";
       setSafetyAnalyses(prev => ({ ...prev, [url]: { status: 'error', analysis: message } }));
     }
   };
@@ -212,12 +281,22 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
   useEffect(() => {
     if (existingTask) {
+        const plannedRes = existingTask.plannedResources as any;
+        const actualRes = existingTask.actualResources as any;
         setTask({ 
           ...existingTask, 
           observations: existingTask.observations || '',
           photo_urls: existingTask.photo_urls || [],
           plannedWeather: existingTask.plannedWeather || '',
           actualWeather: existingTask.actualWeather || '',
+          plannedResources: {
+            personnel: plannedRes?.personnel || [],
+            machines: plannedRes?.machines || plannedRes?.equipment || []
+          },
+          actualResources: {
+            personnel: actualRes?.personnel || [],
+            machines: actualRes?.machines || actualRes?.equipment || []
+          },
       });
     }
   }, [existingTask]);
@@ -298,6 +377,17 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
         const updated = { ...prev, [name]: val };
         
+        if (name === 'actualStartDate' && value && !prev.actualStartDate) {
+            const actualIsEmpty = (!prev.actualResources?.personnel?.length && !prev.actualResources?.machines?.length);
+            if (actualIsEmpty) {
+                 const planned = prev.plannedResources || { personnel: [], machines: [] };
+                 updated.actualResources = {
+                    personnel: planned.personnel.map(p => ({ ...p, quantity: 0 })),
+                    machines: planned.machines.map(m => ({ ...m, quantity: 0 })),
+                 };
+            }
+        }
+        
         if (name === 'discipline') {
             updated.level = '';
             updated.name = '';
@@ -370,6 +460,20 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     onSave(taskToSave);
   };
   
+  const handleSuggestResources = async () => {
+    if (!task.name || isSuggestingResources) return;
+    setIsSuggestingResources(true);
+    try {
+        const suggested = await suggestResources(task.name);
+        setTask(prev => ({...prev, plannedResources: suggested}));
+    } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        alert(`Erro ao sugerir recursos: ${message}`);
+    } finally {
+        setIsSuggestingResources(false);
+    }
+  };
+
   const handleAnalyzeWithAI = async () => {
     if (!task.observations || isAnalyzingAI) return;
     
@@ -380,8 +484,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     try {
         const result = await analyzeObservations(task.observations);
         setAiAnalysisResult(result);
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "An unknown error occurred during AI analysis.";
+    } catch (err) {
+        // FIX: Standardize exception handling in catch blocks to safely process errors of type 'unknown'.
+        const message = err instanceof Error ? err.message : String(err);
         setAiAnalysisError(`Erro na análise: ${message}`);
     } finally {
         setIsAnalyzingAI(false);
@@ -399,7 +504,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
   const showVao = task.discipline === Discipline.OAE && task.level === OAELevel.SUPERESTRUTURA;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar p-1">
       <h2 className="text-base font-black text-white uppercase tracking-[3px] border-b border-dark-border pb-1.5 mb-2">
         {isViewer ? 'DETALHES DA' : 'REGISTRAR'} <span className="text-neon-orange">TAREFA</span>
       </h2>
@@ -480,31 +585,72 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       </div>
 
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-orange">
-        <p className="text-[10px] font-black text-neon-orange uppercase mb-3 tracking-widest">Cronograma Planejado</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <p className="text-[10px] font-black text-neon-orange uppercase tracking-widest mb-4">PLANEJAMENTO</p>
+        
+        <div className="mb-6">
+          <h3 className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-3 border-b border-dark-border pb-1.5">Cronograma Físico</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <InputField label="Data Início" name="plannedStartDate" type="date" value={task.plannedStartDate} onChange={handleChange} error={errors.plannedStartDate} disabled={isProductionUser || isViewer} />
             <InputField label="Data Término" name="plannedEndDate" type="date" value={task.plannedEndDate} onChange={handleChange} error={errors.plannedEndDate} disabled={isProductionUser || isViewer} />
             <InputField label="Quantidade Prevista" name="plannedQuantity" type="number" step="0.01" value={task.plannedQuantity} onChange={handleChange} disabled={isProductionUser || isViewer} />
-        </div>
-        {(isFetchingPlannedWeather || task.plannedWeather) && (
+          </div>
+          {(isFetchingPlannedWeather || task.plannedWeather) && (
             <div className="mt-3 text-xs text-white/50 font-mono p-2 bg-dark-bg border border-dark-border text-center">
                 {isFetchingPlannedWeather ? 'Buscando previsão...' : task.plannedWeather}
             </div>
-        )}
+          )}
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-[11px] font-black text-white/80 uppercase tracking-widest">Recursos Planejados</h3>
+            {role === 'PLANEJADOR' && !isViewer && (
+              <button
+                  type="button"
+                  onClick={handleSuggestResources}
+                  disabled={isSuggestingResources || !task.name}
+                  className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-dark-bg border border-neon-magenta text-neon-magenta shadow-neon-magenta hover:bg-neon-magenta hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSuggestingResources ? 'Sugerindo...' : <><SparklesIcon className="h-4 w-4"/> Sugerir com IA</>}
+              </button>
+            )}
+          </div>
+          <ResourceInputSection
+            title="Planejado"
+            resources={task.plannedResources || { personnel: [], machines: [] }}
+            onResourceChange={(newResources) => setTask(prev => ({...prev, plannedResources: newResources}))}
+            isEditable={role === 'PLANEJADOR' && !isViewer}
+          />
+        </div>
       </div>
 
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-green">
-        <p className="text-[10px] font-black text-neon-green uppercase mb-3 tracking-widest">Execução em Campo</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
-            <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
-            <InputField label="Quantidade Realizada" name="actualQuantity" type="number" step="0.01" value={task.actualQuantity} onChange={handleChange} disabled={isViewer} />
-        </div>
-        {(isFetchingActualWeather || task.actualWeather) && (
-            <div className="mt-3 text-xs text-white/50 font-mono p-2 bg-dark-bg border border-dark-border text-center">
-                {isFetchingActualWeather ? 'Buscando tempo real...' : task.actualWeather}
+        <p className="text-[10px] font-black text-neon-green uppercase tracking-widest mb-4">EXECUÇÃO</p>
+        
+        <div className="mb-6">
+            <h3 className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-3 border-b border-dark-border pb-1.5">Avanço Físico</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <InputField label="Início Real" name="actualStartDate" type="date" value={task.actualStartDate} onChange={handleChange} disabled={isViewer} />
+                <InputField label="Fim Real" name="actualEndDate" type="date" value={task.actualEndDate} onChange={handleChange} disabled={isViewer} error={errors.actualEndDate} />
+                <InputField label="Quantidade Realizada" name="actualQuantity" type="number" step="0.01" value={task.actualQuantity} onChange={handleChange} disabled={isViewer} />
             </div>
-        )}
+            {(isFetchingActualWeather || task.actualWeather) && (
+                <div className="mt-3 text-xs text-white/50 font-mono p-2 bg-dark-bg border border-dark-border text-center">
+                    {isFetchingActualWeather ? 'Buscando tempo real...' : task.actualWeather}
+                </div>
+            )}
+        </div>
+
+        <div>
+            <h3 className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-4">Recursos em Campo</h3>
+            <ResourceInputSection
+              title="Realizado"
+              resources={task.actualResources || { personnel: [], machines: [] }}
+              onResourceChange={(newResources) => setTask(prev => ({...prev, actualResources: newResources}))}
+              isEditable={(role === 'PRODUÇÃO' || role === 'PLANEJADOR') && !isViewer}
+              quantityOnly={false}
+            />
+        </div>
       </div>
       
       <div className="bg-white/[0.03] p-3 border-l-4 border-neon-cyan">
@@ -586,8 +732,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
                                 <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); handleAnalyzeExistingImage(url); }}
-                                    // Fix: Cast Object.values to ImageSafetyAnalysis[] to avoid 'unknown' type error
-                                    disabled={(Object.values(safetyAnalyses) as ImageSafetyAnalysis[]).some(a => a.status === 'analyzing')}
+                                    disabled={Object.values(safetyAnalyses).some(a => a.status === 'analyzing')}
                                     className="absolute bottom-1 left-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-neon-magenta z-10 disabled:opacity-50 disabled:cursor-wait"
                                     title="Analisar Segurança com IA"
                                 >

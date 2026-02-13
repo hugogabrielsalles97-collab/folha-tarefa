@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, DBTask } from '../services/supabaseClient';
 import { Task } from '../types';
@@ -5,36 +6,36 @@ import { Task } from '../types';
 // FIX: Changed return type from 'any' to 'Partial<DBTask>' to provide proper type information
 // to Supabase client methods, resolving overload errors.
 const filterTaskForDB = (task: Partial<Task>): Partial<DBTask> => {
-    // Definimos apenas as chaves que existem comprovadamente no banco de dados.
-    const allowedKeys: (keyof DBTask)[] = [
-        'id', 'name', 'discipline', 'level', 'obraDeArte', 'apoio', 'vao', 
-        'frente', 'corte', 'plannedStartDate', 'plannedEndDate', 
-        'actualStartDate', 'actualEndDate', 'progress',
-        'plannedQuantity', 'actualQuantity', 'quantityUnit', 'photo_urls',
-        'plannedWeather', 'actualWeather', 'observations'
-    ];
-
     const sanitized: Partial<DBTask> = {};
     
-    allowedKeys.forEach(key => {
-        if (key in task) {
-            const value = (task as any)[key];
-            if (['progress', 'plannedQuantity', 'actualQuantity'].includes(key as string)) {
-                // Para quantidades e progresso, converte para número ou null se vazio.
-                (sanitized as any)[key] = value === '' || value === null || value === undefined ? null : Number(value);
-            } else {
-                // Para outros campos, converte string vazia para null.
-                (sanitized as any)[key] = value === '' ? null : value;
-            }
-        }
-    });
-
-    // Garante que o progresso nunca seja nulo no DB se não for fornecido
-    // FIX: Check for undefined as well, as progress might not be in the partial task object.
-    if (sanitized.progress === null || sanitized.progress === undefined) {
-        sanitized.progress = 0;
-    }
-
+    // Mapeamento explícito para evitar problemas e garantir que apenas os campos corretos sejam enviados.
+    if (task.id !== undefined) sanitized.id = task.id;
+    if (task.name !== undefined) sanitized.name = task.name;
+    if (task.discipline !== undefined) sanitized.discipline = task.discipline;
+    if (task.level !== undefined) sanitized.level = task.level;
+    if (task.obraDeArte !== undefined) sanitized.obraDeArte = task.obraDeArte === '' ? null : task.obraDeArte;
+    if (task.apoio !== undefined) sanitized.apoio = task.apoio === '' ? null : task.apoio;
+    if (task.vao !== undefined) sanitized.vao = task.vao === '' ? null : task.vao;
+    if (task.frente !== undefined) sanitized.frente = task.frente === '' ? null : task.frente;
+    if (task.corte !== undefined) sanitized.corte = task.corte === '' ? null : task.corte;
+    if (task.plannedStartDate !== undefined) sanitized.plannedStartDate = task.plannedStartDate;
+    if (task.plannedEndDate !== undefined) sanitized.plannedEndDate = task.plannedEndDate;
+    if (task.actualStartDate !== undefined) sanitized.actualStartDate = task.actualStartDate === '' ? null : task.actualStartDate;
+    if (task.actualEndDate !== undefined) sanitized.actualEndDate = task.actualEndDate === '' ? null : task.actualEndDate;
+    if (task.progress !== undefined) sanitized.progress = Number(task.progress) || 0;
+    if (task.plannedQuantity !== undefined) sanitized.plannedQuantity = task.plannedQuantity === null ? null : Number(task.plannedQuantity);
+    if (task.actualQuantity !== undefined) sanitized.actualQuantity = task.actualQuantity === null ? null : Number(task.actualQuantity);
+    // FIX: This comparison appears to be unintentional because the types 'UnitOfMeasurement' and '""' have no overlap.
+    if (task.quantityUnit !== undefined) sanitized.quantityUnit = (task.quantityUnit as any) === '' ? null : task.quantityUnit;
+    if (task.photo_urls !== undefined) sanitized.photo_urls = task.photo_urls;
+    if (task.plannedWeather !== undefined) sanitized.plannedWeather = task.plannedWeather === '' ? null : task.plannedWeather;
+    if (task.actualWeather !== undefined) sanitized.actualWeather = task.actualWeather === '' ? null : task.actualWeather;
+    if (task.observations !== undefined) sanitized.observations = task.observations;
+    
+    // Mapeamento dos novos campos de recursos
+    if (task.plannedResources !== undefined) sanitized.planned_resources = task.plannedResources;
+    if (task.actualResources !== undefined) sanitized.actualResources = task.actualResources;
+    
     return sanitized;
 };
 
@@ -58,7 +59,26 @@ export function useSupabaseTasks() {
         .order('plannedStartDate', { ascending: true });
 
       if (fetchError) throw fetchError;
-      if (data) setTasks(data as unknown as Task[]);
+      if (data) {
+        // Mapeia de snake_case para camelCase e trata dados legados
+        const mappedData = data.map(item => {
+          const plannedRes = item.planned_resources as any;
+          const actualRes = item.actualResources as any;
+
+          return {
+            ...item,
+            plannedResources: {
+              personnel: plannedRes?.personnel || [],
+              machines: plannedRes?.machines || plannedRes?.equipment || [],
+            },
+            actualResources: {
+              personnel: actualRes?.personnel || [],
+              machines: actualRes?.machines || actualRes?.equipment || [],
+            },
+          }
+        }) as unknown as Task[];
+        setTasks(mappedData);
+      }
     } catch (e: any) {
       console.error('Fetch Error:', e);
       setError(`Erro ao buscar: ${e.message}`);

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task } from '../types';
-import { EditIcon, DeleteIcon, PhotoIcon } from './icons';
+import { EditIcon, DeleteIcon, PhotoIcon, UserGroupIcon, TruckIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TaskListProps {
@@ -48,6 +48,11 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
     return `bg-${status.colorClass} shadow-[0_0_15px_${status.hex}] progress-bar-fill`;
   };
 
+  const totalPlannedPersonnel = task.plannedResources?.personnel.reduce((sum, p) => sum + p.quantity, 0) || 0;
+  const totalActualPersonnel = task.actualResources?.personnel.reduce((sum, p) => sum + p.quantity, 0) || 0;
+  const totalPlannedMachines = task.plannedResources?.machines.reduce((sum, e) => sum + e.quantity, 0) || 0;
+  const totalActualMachines = task.actualResources?.machines.reduce((sum, e) => sum + e.quantity, 0) || 0;
+
   return (
     <div className="grid grid-cols-12 gap-y-4 md:gap-2 items-center p-4 border-b border-dark-border hover:bg-white/[0.04] transition-colors group print:border-black print:p-2">
       {/* Nome e Disciplina */}
@@ -60,6 +65,12 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Local</span>
         {task.frente || task.obraDeArte || task.corte || '---'}
+      </div>
+      
+      {/* Apoio */}
+      <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Apoio</span>
+        {task.apoio || '---'}
       </div>
       
       {/* DATAS */}
@@ -105,13 +116,40 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* QUANTIDADES */}
-      <div className="col-span-6 md:col-span-2 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
-        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Quantidades</span>
-        <div className="grid grid-cols-[15px_1fr] gap-x-2 text-left max-w-max mx-auto">
-            <span className="text-neon-orange/80 font-black">P:</span>
-            <span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
-            <span className="text-neon-green/80 font-black">R:</span>
-            <span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
+      <div className="col-span-3 md:col-span-1 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
+          <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Quantidades</span>
+          <div className="grid grid-cols-[15px_1fr] gap-x-2 text-left max-w-max mx-auto">
+              <span className="text-neon-orange/80 font-black">P:</span>
+              <span>{task.plannedQuantity ?? '---'}{task.plannedQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
+              <span className="text-neon-green/80 font-black">R:</span>
+              <span>{task.actualQuantity ?? '---'}{task.actualQuantity != null && task.quantityUnit ? ` ${task.quantityUnit}`: ''}</span>
+          </div>
+      </div>
+
+      {/* RECURSOS */}
+      <div className="col-span-3 md:col-span-1 text-xs text-white/80 font-mono text-center leading-tight print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Recursos</span>
+        <div className="flex justify-center items-start gap-4">
+            <div className="text-center">
+                <div className="flex items-center gap-1 justify-center mb-0.5">
+                    <UserGroupIcon className="h-3 w-3 text-white/40" />
+                    <span className="text-[8px] font-bold text-white/40 uppercase tracking-wider">Homem</span>
+                </div>
+                <div className="text-[10px] leading-tight">
+                    <div className="font-mono"><span className="text-neon-orange/80 font-black">P:</span> {totalPlannedPersonnel}</div>
+                    <div className="font-mono"><span className="text-neon-green/80 font-black">R:</span> {totalActualPersonnel}</div>
+                </div>
+            </div>
+            <div className="text-center">
+                <div className="flex items-center gap-1 justify-center mb-0.5">
+                    <TruckIcon className="h-3 w-3 text-white/40" />
+                    <span className="text-[8px] font-bold text-white/40 uppercase tracking-wider">Máquina</span>
+                </div>
+                <div className="text-[10px] leading-tight">
+                    <div className="font-mono"><span className="text-neon-orange/80 font-black">P:</span> {totalPlannedMachines}</div>
+                    <div className="font-mono"><span className="text-neon-green/80 font-black">R:</span> {totalActualMachines}</div>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -123,7 +161,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* PROGRESSO */}
-      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-4"}>
+      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -189,10 +227,14 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
             <div className="grid grid-cols-12 gap-y-2 md:gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" />
                 <SortableHeader title="Local" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
+                <SortableHeader title="Apoio" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Datas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" centered />
-                <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-2" centered />
+                <SortableHeader title="Quant." sortKey="plannedQuantity" onSort={onSort} sortConfig={sortConfig} className="col-span-3 md:col-span-1" centered />
+                <div className="col-span-3 md:col-span-1 flex justify-center">
+                    <span className="text-white/30 uppercase text-[9px] font-black tracking-[1px]">Recursos</span>
+                </div>
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-4"} />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />
                 {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
             </div>
             {/* Lista de Itens */}

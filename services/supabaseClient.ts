@@ -1,6 +1,6 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { Discipline, TaskLevel, UnitOfMeasurement } from '../types';
+import { Discipline, TaskLevel, UnitOfMeasurement, Resources } from '../types';
 
 export interface DBTask {
   id: string;
@@ -25,6 +25,8 @@ export interface DBTask {
   plannedWeather?: string;
   actualWeather?: string;
   observations?: string;
+  planned_resources?: Resources;
+  actualResources?: Resources;
 }
 
 export interface Database {
@@ -40,8 +42,7 @@ export interface Database {
 }
 
 const initializeSupabase = (): SupabaseClient<Database> | null => {
-  // FIX: As variáveis de ambiente não estão sendo carregadas corretamente no ambiente de execução.
-  // Inserindo as credenciais diretamente para garantir a funcionalidade da aplicação.
+  // FIX: Hardcoded credentials to fix execution environment issue.
   const supabaseUrl = "https://lngeppgwfziulcnaczab.supabase.co";
   const supabaseAnonKey = "sb_publishable_jkz6_kzprh2Z23g-pKBUyg_X4Zmq4pY";
 

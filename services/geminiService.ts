@@ -1,14 +1,9 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// A chave da API do Gemini é fornecida diretamente para garantir a funcionalidade.
-const GEMINI_API_KEY = "AIzaSyA2Z4TEqd5N_zGv-Wh3VNvUmCua9obd82U";
-
-if (!GEMINI_API_KEY) {
-  throw new Error("A chave da API do Gemini não foi encontrada. A aplicação não pode funcionar sem ela.");
-}
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// FIX: API key is now loaded from environment variables for security.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
 const callGemini = async (prompt: string, modelName: string = 'gemini-3-flash-preview'): Promise<string> => {
@@ -204,9 +199,9 @@ export async function analyzeImageSafety(file: File): Promise<string> {
 
 
 /**
- * Sugere recursos (pessoal e equipamento) para uma tarefa de construção.
+ * Sugere recursos (pessoal e máquinas) para uma tarefa de construção.
  * @param taskName O nome/descrição da tarefa.
- * @returns Um objeto com listas de pessoal e equipamentos sugeridos.
+ * @returns Um objeto com listas de pessoal e máquinas sugeridos.
  */
 export async function suggestResources(taskName: string): Promise<Resources> {
     const schema = {
@@ -224,7 +219,7 @@ export async function suggestResources(taskName: string): Promise<Resources> {
                     required: ["role", "quantity"]
                 }
             },
-            equipment: {
+            machines: {
                 type: Type.ARRAY,
                 description: "Lista de máquinas e equipamentos necessários.",
                 items: {
@@ -237,11 +232,11 @@ export async function suggestResources(taskName: string): Promise<Resources> {
                 }
             }
         },
-        required: ["personnel", "equipment"]
+        required: ["personnel", "machines"]
     };
 
     const prompt = `
-        Você é um planejador de obras sênior. Para a atividade de construção civil "${taskName}", gere uma lista de recursos necessários, incluindo pessoal (por função) e equipamentos. Forneça uma estimativa realista e comum para uma equipe padrão para este tipo de serviço.
+        Você é um planejador de obras sênior. Para a atividade de construção civil "${taskName}", gere uma lista de recursos necessários, incluindo pessoal (por função) e máquinas. Forneça uma estimativa realista e comum para uma equipe padrão para este tipo de serviço.
     `;
 
     try {
@@ -260,8 +255,8 @@ export async function suggestResources(taskName: string): Promise<Resources> {
         
         const jsonResponse = JSON.parse(response.text);
 
-        if (!jsonResponse.personnel || !jsonResponse.equipment) {
-            throw new Error("A resposta da IA não contém os campos 'personnel' ou 'equipment'.");
+        if (!jsonResponse.personnel || !jsonResponse.machines) {
+            throw new Error("A resposta da IA não contém os campos 'personnel' ou 'machines'.");
         }
         
         return jsonResponse as Resources;

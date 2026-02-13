@@ -60,6 +60,10 @@ export interface Task {
   progress: number; // 0-100
   observations?: string;
   photo_urls?: string[];
+
+  // Adicionado para suportar recursos
+  plannedResources?: Resources;
+  actualResources?: Resources;
 }
 
 export interface ChatMessage {
@@ -72,18 +76,17 @@ export interface ImageSafetyAnalysis {
   analysis?: string;
 }
 
-// Added missing Resources interface and its sub-interfaces for construction resource suggestions
 export interface Personnel {
   role: string;
   quantity: number;
 }
 
-export interface Equipment {
+export interface Machine {
   name: string;
   quantity: number;
 }
 
 export interface Resources {
   personnel: Personnel[];
-  equipment: Equipment[];
+  machines: Machine[];
 }
