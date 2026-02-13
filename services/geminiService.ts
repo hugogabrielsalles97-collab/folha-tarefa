@@ -2,7 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task, Resources } from "../types";
 
-// FIX: API key is now loaded from environment variables for security.
+// FIX: API key is now loaded from client-safe environment variables provided by the build tool (e.g., Vite/Vercel).
+// The variable must be prefixed with VITE_ (e.g., VITE_API_KEY) in the deployment environment (Vercel).
+// Fix: Use `process.env.API_KEY` for the API key as required by the coding guidelines.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
