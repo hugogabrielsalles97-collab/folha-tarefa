@@ -61,6 +61,12 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
         <p className="text-[9px] text-white/40 font-bold uppercase tracking-[1px] mt-0.5 print:text-black print:opacity-60">{task.discipline} / {task.level}</p>
       </div>
 
+      {/* Responsável */}
+      <div className="col-span-12 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
+        <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Responsável</span>
+        {task.responsible || '---'}
+      </div>
+
       {/* Local */}
       <div className="col-span-6 md:col-span-1 text-xs text-white/80 font-mono text-center print:text-black">
         <span className="md:hidden text-[9px] block text-white/20 uppercase font-black mb-1 print:text-black">Local</span>
@@ -161,7 +167,7 @@ const TaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; onDelete: (
       </div>
 
       {/* PROGRESSO */}
-      <div className={showViewButton ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"}>
+      <div className={showViewButton ? "col-span-9 md:col-span-1" : "col-span-12 md:col-span-2"}>
         <div className="flex items-center gap-2">
             <div className="flex-1 bg-dark-bg h-1.5 border border-dark-border overflow-hidden progress-bar-bg print:border-black">
                 <div className={`h-full ${getProgressColorClass()}`} style={{ width: `${task.progress}%` }}></div>
@@ -226,6 +232,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
             {/* Cabeçalho Responsivo */}
             <div className="grid grid-cols-12 gap-y-2 md:gap-2 p-4 border-b border-white/10 bg-white/[0.04] mb-2 print:border-black print:bg-white print:p-2">
                 <SortableHeader title="Tarefas" sortKey="name" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" />
+                <SortableHeader title="Responsável" sortKey="responsible" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-1" centered />
                 <SortableHeader title="Local" sortKey="frente" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Apoio" sortKey="apoio" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
                 <SortableHeader title="Datas" sortKey="plannedStartDate" onSort={onSort} sortConfig={sortConfig} className="col-span-12 md:col-span-2" centered />
@@ -234,7 +241,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onSort, so
                     <span className="text-white/30 uppercase text-[9px] font-black tracking-[1px]">Recursos</span>
                 </div>
                 <SortableHeader title="Status" sortKey="status" onSort={onSort} sortConfig={sortConfig} className="col-span-6 md:col-span-1" centered />
-                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-2" : "col-span-12 md:col-span-3"} />
+                <SortableHeader title="Avanço" sortKey="progress" onSort={onSort} sortConfig={sortConfig} className={showActionsHeader ? "col-span-9 md:col-span-1" : "col-span-12 md:col-span-2"} />
                 {showActionsHeader && <div className="col-span-3 md:col-span-1 text-right text-[9px] font-black text-white/20 uppercase tracking-widest print:hidden">Info</div>}
             </div>
             {/* Lista de Itens */}

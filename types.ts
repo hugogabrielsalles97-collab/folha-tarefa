@@ -36,6 +36,7 @@ export interface Task {
   id: string;
   created_at?: string;
   name: string;
+  responsible?: string;
   discipline: Discipline;
   level: TaskLevel;
   

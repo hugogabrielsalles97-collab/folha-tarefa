@@ -11,6 +11,7 @@ const filterTaskForDB = (task: Partial<Task>): Partial<DBTask> => {
     // Mapeamento explícito para evitar problemas e garantir que apenas os campos corretos sejam enviados.
     if (task.id !== undefined) sanitized.id = task.id;
     if (task.name !== undefined) sanitized.name = task.name;
+    if (task.responsible !== undefined) sanitized.responsible = task.responsible === '' ? null : task.responsible;
     if (task.discipline !== undefined) sanitized.discipline = task.discipline;
     if (task.level !== undefined) sanitized.level = task.level;
     if (task.obraDeArte !== undefined) sanitized.obraDeArte = task.obraDeArte === '' ? null : task.obraDeArte;

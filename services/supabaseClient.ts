@@ -6,6 +6,7 @@ export interface DBTask {
   id: string;
   created_at?: string;
   name: string;
+  responsible?: string;
   discipline: Discipline;
   level: TaskLevel;
   obraDeArte?: string;

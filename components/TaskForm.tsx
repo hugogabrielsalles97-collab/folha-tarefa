@@ -154,6 +154,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
 
   const [task, setTask] = useState<Omit<Task, 'id'>>({
     name: '',
+    responsible: '',
     discipline: Discipline.OAE,
     level: '',
     frente: '',
@@ -224,7 +225,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
       const analysisResult = await analyzeImageSafety(file);
       const status = analysisResult.includes('INSEGURO') ? 'unsafe' : 'safe';
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status, analysis: analysisResult } }));
-    } catch (err) {
+    } catch (err: unknown) {
       // FIX: Standardize exception handling in catch blocks to safely process errors of type 'unknown'.
       const message = err instanceof Error ? err.message : String(err);
       setSafetyAnalyses(prev => ({ ...prev, [publicUrl]: { status: 'error', analysis: message } }));
@@ -285,6 +286,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
         const actualRes = existingTask.actualResources as any;
         setTask({ 
           ...existingTask, 
+          responsible: existingTask.responsible || '',
           observations: existingTask.observations || '',
           photo_urls: existingTask.photo_urls || [],
           plannedWeather: existingTask.plannedWeather || '',
@@ -484,7 +486,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
     try {
         const result = await analyzeObservations(task.observations);
         setAiAnalysisResult(result);
-    } catch (err) {
+    } catch (err: unknown) {
         // FIX: Standardize exception handling in catch blocks to safely process errors of type 'unknown'.
         const message = err instanceof Error ? err.message : String(err);
         setAiAnalysisError(`Erro na análise: ${message}`);
@@ -575,6 +577,17 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSave, onCancel, existingTask, all
           ) : (
               <InputField label="Descrição da Tarefa" name="name" value={task.name} onChange={handleChange} error={errors.name} disabled={isProductionUser || isViewer} placeholder="Descreva a atividade..." />
           )}
+      </div>
+
+      <div className="pt-2">
+        <InputField 
+            label="Responsável pela Tarefa" 
+            name="responsible" 
+            value={task.responsible} 
+            onChange={handleChange} 
+            disabled={isProductionUser || isViewer} 
+            placeholder="Nome do encarregado ou responsável..." 
+        />
       </div>
 
       <div className="pt-2">
